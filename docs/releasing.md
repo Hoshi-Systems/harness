@@ -1,8 +1,14 @@
 # Prerelease artifacts
 
-Harness is not published to npm yet. Until it is, an immutable GitHub Release
-asset is the only supported way for another repository to consume a built
-Harness without copying its source.
+Harness is not published to npm yet. Until it is, another repository can either
+pin a source commit during development or consume an immutable GitHub Release
+asset without copying its source.
+
+For development before an artifact exists, a consumer may pin a full Git commit
+with `github:Hoshi-Systems/harness#<commit>`. The repository's `prepare` script
+builds its `dist` during that installation. This is a temporary development
+bridge: never pin a branch or a moving tag, because a plugin and its daemon
+must resolve exactly one Harness module instance.
 
 ## Create an artifact
 
