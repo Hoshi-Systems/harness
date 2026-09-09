@@ -31,6 +31,21 @@ Run `hoshi-harness routes` to inspect the installed API surface,
 would receive from `GET /capabilities`, or `hoshi-harness doctor` to report
 missing optional system dependencies.
 
+## Inspect a machine in the browser
+
+The [Reference Console](./docs/reference-console.md) is a tiny, standalone
+client for an owner to inspect a running machine's Capability Passport. It is
+not part of the Harness daemon or a Hoshi product UI: it demonstrates the
+public `GET /capabilities` contract that any client can consume.
+
+```sh
+pnpm console
+```
+
+Open the local address it prints, enter the machine URL and an owner bearer
+token, then select **Inspect machine**. The token stays in page memory and is
+cleared after the request.
+
 ## Plugins
 
 Plugins are explicit modules. A plugin package exports an array of results from

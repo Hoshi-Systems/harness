@@ -46,6 +46,7 @@
   "scripts": {
     "prepare": "pnpm build",
     "dev": "tsx watch src/daemon/cli.ts serve --port 4200 --host 127.0.0.1",
+    "console": "node examples/reference-console/serve.mjs",
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
