@@ -1,0 +1,33 @@
+name: Release artifact
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm check:boundary
+      - run: pnpm check:dist
+      - run: mkdir -p release
+      - run: pnpm pack --pack-destination release
+      - name: Create immutable prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$(node --input-type=module -e \"import manifest from './package.json' with { type: 'json' }; process.stdout.write(manifest.version)\")"
+          gh release create "$TAG" release/*.tgz --target "$GITHUB_SHA" --title "$TAG" --prerelease
