@@ -26,8 +26,10 @@ choose different locations.
 hoshi-harness --workspace ./workspace --state ./.hoshi --port 4200
 ```
 
-Run `hoshi-harness routes` to inspect the installed API surface, or
-`hoshi-harness doctor` to report missing optional system dependencies.
+Run `hoshi-harness routes` to inspect the installed API surface,
+`hoshi-harness capabilities` to print the safe capability inventory a client
+would receive from `GET /capabilities`, or `hoshi-harness doctor` to report
+missing optional system dependencies.
 
 ## Plugins
 
@@ -41,6 +43,11 @@ export default [
   definePlugin({
     name: 'example',
     description: 'An example extension',
+    capability: {
+      id: 'example.inspect',
+      title: 'Example inspection',
+      description: 'Inspects an example.',
+    },
     setup(host) {
       host.routes.get('/example', () => ({ ok: true }))
     },
@@ -63,7 +70,7 @@ from the dedicated export:
 
 ```ts
 import { createHarness } from '@hoshi/harness'
-import type { MachineEvent, MachineProfile } from '@hoshi/harness/wire'
+import type { CapabilityPassport, MachineEvent, MachineProfile } from '@hoshi/harness/wire'
 
 const harness = createHarness({ port: 4200 })
 await harness.listen()

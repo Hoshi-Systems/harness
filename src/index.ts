@@ -212,6 +212,8 @@ export function createHarness(input: Partial<HarnessConfig> & HarnessOptions = {
 }
 
 export { startHarness, stopHarness, harnessHandler, harnessRoutes, pluginStatuses } from './runtime.js'
+/** A render-safe, versioned projection of the live machine registry. */
+export { capabilityPassport } from './kernel/capabilities.js'
 
 /**
  *

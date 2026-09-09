@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { createHarness, harnessRoutes, resolveConfig, startHarness } from '../index.js'
+import { capabilityPassport, createHarness, harnessRoutes, resolveConfig, startHarness } from '../index.js'
 import { firstParty } from '../plugins/index.js'
 import { guardProcess } from './resilience.js'
 import { inspectDependencies, installDependencies } from '../plugins/system.js'
@@ -112,6 +112,14 @@ async function routes(argv: string[]): Promise<void> {
   process.exit(0)
 }
 
+/** The same render-safe inventory served at GET /capabilities, useful before a
+ * machine binds a port or when an operator is connected only by a shell. */
+async function capabilities(argv: string[]): Promise<void> {
+  await startHarness({ extraPlugins: await loaded(argv) })
+  console.log(JSON.stringify(capabilityPassport(harnessRoutes()), null, 2))
+  process.exit(0)
+}
+
 /** Which plugins a command is talking about. `--plugins a,b` narrows it;
  *  absent means everything this machine runs — what the harness ships plus
  *  whatever was loaded from outside. */
@@ -170,6 +178,9 @@ switch (command) {
   case 'routes':
     await routes(argv)
     break
+  case 'capabilities':
+    await capabilities(argv)
+    break
   case 'install':
     await install(argv)
     break
@@ -177,6 +188,6 @@ switch (command) {
     await doctor(argv)
     break
   default:
-    console.error(`Unknown command "${command}". Try: serve | routes | install | doctor`)
+    console.error(`Unknown command "${command}". Try: serve | routes | capabilities | install | doctor`)
     process.exit(1)
 }
