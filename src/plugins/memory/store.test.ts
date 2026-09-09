@@ -15,9 +15,10 @@ import path from 'node:path'
  * H-08). One implementation is what makes that class of bug impossible; a suite
  * over the format is what makes a change to it deliberate.
  *
- * `HOME` and `WORKSPACE_ROOT` are captured at module scope, so the module is
- * imported AFTER they are pointed at a scratch directory — which is also what
- * lets the round-trip below touch a real filesystem without touching yours.
+ * The workspace root is selected at module load for ordinary direct-kernel
+ * use, so this test points it at a scratch directory before importing the
+ * store. State paths themselves are resolved through `hoshiFile()` at use
+ * time, which is what lets an embedded harness select its own state root.
  *
  **/
 

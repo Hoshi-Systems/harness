@@ -1,6 +1,4 @@
-import { homedir } from 'node:os'
-import path from 'node:path'
-import { writeHoshiAtomic } from '../../kernel/index.js'
+import { hoshiFile, writeHoshiAtomic } from '../../kernel/index.js'
 import {
   listEntries,
   listProjectSlugs,
@@ -25,11 +23,10 @@ import {
  *
  **/
 
-const HOME = process.env.HOME ?? homedir()
 /** The machine's own state directory — where the profile is laid down and
  *  where the turn reads this file from. It used to sit under the config dir of
  *  a foreign agent binary, which nothing on this machine opened. */
-const AGENTS_MD_PATH = path.join(HOME, '.hoshi', 'AGENTS.md')
+const agentsMdPath = () => hoshiFile('AGENTS.md')
 
 const MANAGED_START = '<!-- hoshi:managed:start -->'
 const MANAGED_END = '<!-- hoshi:managed:end -->'
@@ -220,9 +217,10 @@ export async function regenerateAgentsIndex(): Promise<void> {
   lines.push(MANAGED_END)
   const region = lines.join('\n')
 
-  const existing = await readOptional(AGENTS_MD_PATH)
+  const target = agentsMdPath()
+  const existing = await readOptional(target)
   const merged = mergeManagedRegion(existing, region)
-  await writeHoshiAtomic(AGENTS_MD_PATH, merged)
+  await writeHoshiAtomic(target, merged)
 }
 
 function mergeManagedRegion(existingContent: string | null, region: string): string {

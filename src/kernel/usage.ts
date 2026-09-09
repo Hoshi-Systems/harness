@@ -26,7 +26,7 @@ import { hoshiFile, readHoshiJson, writeHoshiJson } from './store.js'
  *
  **/
 
-const USAGE_FILE = hoshiFile('usage.json')
+const usageFile = () => hoshiFile('usage.json')
 
 export interface UsageEvent {
   id: string
@@ -57,7 +57,7 @@ let seenMessageIds: Set<string> | null = null
 
 async function ensureLoaded(): Promise<UsageStore> {
   if (cache) return cache
-  const stored = await readHoshiJson<UsageStore>(USAGE_FILE)
+  const stored = await readHoshiJson<UsageStore>(usageFile())
   cache = stored && Array.isArray(stored.events) ? stored : { events: [] }
   seenMessageIds = new Set(cache.events.map((event) => event.messageId))
   return cache
@@ -75,7 +75,7 @@ function persist(): void {
   const snapshot = cache
   if (!snapshot) return
   persistQueue = persistQueue
-    .then(() => writeHoshiJson(USAGE_FILE, snapshot))
+    .then(() => writeHoshiJson(usageFile(), snapshot))
     .catch((error) => console.error('[usage] failed to persist usage events:', error))
 }
 

@@ -1,6 +1,6 @@
 import { readdir } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import path from 'node:path'
+import { hoshiFile } from '../../kernel/index.js'
 import {
   defineHoshiTool,
   MODEL_TIERS,
@@ -35,8 +35,7 @@ import {
  *
  **/
 
-const HOME = process.env.HOME ?? homedir()
-const ARCHETYPES_DIR = path.join(HOME, '.hoshi', 'archetypes')
+const archetypesDir = () => hoshiFile('archetypes')
 
 const PERSONAL_AGENT = 'hoshi'
 
@@ -96,7 +95,7 @@ async function tierModels(machine: MachineCapabilities): Promise<TierModels> {
 /** The archetype names seeded on this machine, for the router prompt's enum. */
 async function archetypeNames(): Promise<string[]> {
   try {
-    return (await readdir(ARCHETYPES_DIR))
+    return (await readdir(archetypesDir()))
       .filter((f) => f.endsWith('.md'))
       .map((f) => f.slice(0, -3))
       .sort()

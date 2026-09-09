@@ -1,8 +1,8 @@
 import { desktopConfig } from './config.js'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { hoshiFile } from '../../kernel/index.js'
 
 /**
  * ── The agent's desktop ──────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ function startDesktopSession(): void {
 /** A private, writable `XDG_RUNTIME_DIR` under the machine's durable HOME.
  *  0700 because that is what the spec requires and what the components check. */
 function runtimeDir(): string {
-  const dir = join(process.env.HOME ?? tmpdir(), '.hoshi', 'xdg-runtime')
+  const dir = hoshiFile('xdg-runtime')
   try {
     mkdirSync(dir, { recursive: true, mode: 0o700 })
   } catch (error) {

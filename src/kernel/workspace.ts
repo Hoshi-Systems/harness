@@ -12,8 +12,21 @@ import path from 'node:path'
  * Mirrored by the Platform's checkoutDirectory() (apps/api/services/checkouts.ts).
  *
  **/
-export const WORKSPACE_ROOT =
-  process.env.WORKSPACE_ROOT ?? (existsSync('/workspace') ? '/workspace' : path.join(homedir(), '.hoshi-workspace'))
+export function defaultWorkspaceRoot(): string {
+  return process.env.WORKSPACE_ROOT ?? (existsSync('/workspace') ? '/workspace' : path.join(homedir(), '.hoshi-workspace'))
+}
+
+/** Mutable only while the one process-wide harness is running. Exporting a
+ * live binding keeps existing kernel modules honest about the configured root. */
+export let WORKSPACE_ROOT = defaultWorkspaceRoot()
+
+export function configureWorkspaceRoot(root: string): void {
+  WORKSPACE_ROOT = path.resolve(root)
+}
+
+export function resetWorkspaceRoot(): void {
+  WORKSPACE_ROOT = defaultWorkspaceRoot()
+}
 
 /** A project directory that physically exists on this machine. `directory` is
  *  the join key back to the Platform's checkout rows. */

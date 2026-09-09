@@ -1,6 +1,6 @@
 import { mkdir, stat, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import path from 'node:path'
+import { hoshiFile } from '../../kernel/index.js'
 import { defineHoshiTool, z, type HoshiToolFactories } from '../define-tool.js'
 
 /**
@@ -16,8 +16,7 @@ import { defineHoshiTool, z, type HoshiToolFactories } from '../define-tool.js'
  *
  **/
 
-const HOME = process.env.HOME ?? homedir()
-const SKILLS_DIR = path.join(HOME, '.hoshi', 'skills')
+const skillsDir = () => hoshiFile('skills')
 
 /**
  *
@@ -77,7 +76,7 @@ const skillCreate = defineHoshiTool({
   },
   async execute(args) {
     const slug = slugify(args.name)
-    const dir = path.join(SKILLS_DIR, slug)
+    const dir = path.join(skillsDir(), slug)
 
     const alreadyExists = await stat(dir)
       .then(() => true)

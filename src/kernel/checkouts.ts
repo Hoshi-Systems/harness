@@ -14,7 +14,9 @@ import { WORKSPACE_ROOT } from './workspace.js'
  * Under the workspace root but dotfile-prefixed, so scanWorkspace() skips it.
  *
  **/
-const MANIFEST_PATH = path.join(WORKSPACE_ROOT, '.hoshi', 'checkouts.json')
+function manifestPath(): string {
+  return path.join(WORKSPACE_ROOT, '.hoshi', 'checkouts.json')
+}
 
 export type CheckoutStatus = 'provisioning' | 'ready' | 'error'
 
@@ -62,7 +64,7 @@ const serialize = createSerialQueue()
 
 async function readManifest(): Promise<Record<string, CheckoutMeta>> {
   try {
-    const raw = await readFile(MANIFEST_PATH, 'utf8')
+    const raw = await readFile(manifestPath(), 'utf8')
     const parsed = JSON.parse(raw) as Record<string, CheckoutMeta>
     return parsed && typeof parsed === 'object' ? parsed : {}
   } catch (error) {
@@ -77,8 +79,9 @@ async function readManifest(): Promise<Record<string, CheckoutMeta>> {
 }
 
 async function writeManifest(manifest: Record<string, CheckoutMeta>): Promise<void> {
-  await mkdir(path.dirname(MANIFEST_PATH), { recursive: true })
-  await writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2))
+  const target = manifestPath()
+  await mkdir(path.dirname(target), { recursive: true })
+  await writeFile(target, JSON.stringify(manifest, null, 2))
 }
 
 /** Every checkout the Platform has pushed to this machine. */

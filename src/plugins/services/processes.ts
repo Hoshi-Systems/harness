@@ -59,8 +59,8 @@ const MAX_PROCESSES = 200
  *
  **/
 
-const PROCESSES_FILE = hoshiFile('processes.json')
-const PROCESSES_LOG_DIR = hoshiFile('processes')
+const processesFile = () => hoshiFile('processes.json')
+const processesLogDir = () => hoshiFile('processes')
 
 /** The wire shape — declared in @hoshi/shared (machine-events.ts), where the
  *  exitCode caveat now lives too. */
@@ -71,7 +71,7 @@ interface ProcessStore {
 }
 
 async function readStore(): Promise<ProcessStore> {
-  const stored = await readHoshiJson<ProcessStore>(PROCESSES_FILE)
+  const stored = await readHoshiJson<ProcessStore>(processesFile())
   return stored && Array.isArray(stored.processes) ? stored : { processes: [] }
 }
 
@@ -95,7 +95,7 @@ function withStore<T>(fn: (store: ProcessStore) => Promise<[T, boolean]> | [T, b
   const run = mutateQueue.then(async () => {
     const store = await readStore()
     const [result, changed] = await fn(store)
-    if (changed) await writeHoshiJson(PROCESSES_FILE, store)
+    if (changed) await writeHoshiJson(processesFile(), store)
     return result
   })
   mutateQueue = run.catch(() => {})
@@ -106,7 +106,7 @@ function withStore<T>(fn: (store: ProcessStore) => Promise<[T, boolean]> | [T, b
  *  than stored on the record, so an entry written by any build resolves to its
  *  own output. */
 export function processLogFile(id: string): string {
-  return path.join(PROCESSES_LOG_DIR, `${id}.log`)
+  return path.join(processesLogDir(), `${id}.log`)
 }
 
 /** True when `pid` is (still) a live process this user owns. Signal 0 sends no
@@ -188,7 +188,7 @@ export async function startProcess(input: {
   cwd: string
   env?: Record<string, string> | null
 }): Promise<TrackedProcess> {
-  await mkdir(PROCESSES_LOG_DIR, { recursive: true })
+  await mkdir(processesLogDir(), { recursive: true })
   const id = crypto.randomUUID()
   /**
    *

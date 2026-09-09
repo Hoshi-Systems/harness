@@ -5,8 +5,8 @@ import { regenerateAgentsIndex } from './agents-index.js'
 import { mirrorForget, mirrorSave } from './graph-mirror.js'
 import {
   MEMORY_KINDS,
-  ORG_DIR,
-  ORG_DOCUMENTS_DIR,
+  orgDir,
+  orgDocumentsDir,
   orgDocumentPath,
   orgFilePath,
   serializeRecord,
@@ -68,11 +68,11 @@ export interface MirroredEntry {
 async function unlockMirror(): Promise<void> {
   /** Parent before child, each time: a locked ORG_DIR would refuse the mkdir
    *  that creates (or re-creates) the documents directory inside it. */
-  await mkdir(ORG_DIR, { recursive: true })
-  await chmod(ORG_DIR, UNLOCKED_DIR).catch(() => {})
-  await mkdir(ORG_DOCUMENTS_DIR, { recursive: true })
-  await chmod(ORG_DOCUMENTS_DIR, UNLOCKED_DIR).catch(() => {})
-  for (const dir of [ORG_DIR, ORG_DOCUMENTS_DIR]) {
+  await mkdir(orgDir(), { recursive: true })
+  await chmod(orgDir(), UNLOCKED_DIR).catch(() => {})
+  await mkdir(orgDocumentsDir(), { recursive: true })
+  await chmod(orgDocumentsDir(), UNLOCKED_DIR).catch(() => {})
+  for (const dir of [orgDir(), orgDocumentsDir()]) {
     for (const file of await listMarkdown(dir)) {
       await chmod(path.join(dir, file), UNLOCKED_FILE).catch(() => {})
     }
@@ -80,15 +80,15 @@ async function unlockMirror(): Promise<void> {
 }
 
 async function lockMirror(): Promise<void> {
-  for (const dir of [ORG_DIR, ORG_DOCUMENTS_DIR]) {
+  for (const dir of [orgDir(), orgDocumentsDir()]) {
     for (const file of await listMarkdown(dir)) {
       await chmod(path.join(dir, file), LOCKED_FILE).catch(() => {})
     }
   }
   /** Documents first: locking the parent before the child would make the
    *  child unreachable to chmod on some filesystems. */
-  await chmod(ORG_DOCUMENTS_DIR, LOCKED_DIR).catch(() => {})
-  await chmod(ORG_DIR, LOCKED_DIR).catch(() => {})
+  await chmod(orgDocumentsDir(), LOCKED_DIR).catch(() => {})
+  await chmod(orgDir(), LOCKED_DIR).catch(() => {})
 }
 
 async function listMarkdown(dir: string): Promise<string[]> {
@@ -154,13 +154,13 @@ async function replaceOrg(entries: MirroredEntry[]): Promise<{ entries: number; 
     }
 
     /** Replace, don't patch — rule 3 at the top of this file. */
-    for (const file of await listMarkdown(ORG_DIR)) {
+    for (const file of await listMarkdown(orgDir())) {
       if (keep.has(file)) continue
-      await rm(path.join(ORG_DIR, file), { force: true })
+      await rm(path.join(orgDir(), file), { force: true })
       void mirrorForget('org', null, file.replace(/\.md$/, '')).catch(() => {})
     }
-    for (const file of await listMarkdown(ORG_DOCUMENTS_DIR)) {
-      if (!keepDocuments.has(file)) await rm(path.join(ORG_DOCUMENTS_DIR, file), { force: true })
+    for (const file of await listMarkdown(orgDocumentsDir())) {
+      if (!keepDocuments.has(file)) await rm(path.join(orgDocumentsDir(), file), { force: true })
     }
   } finally {
     await lockMirror()

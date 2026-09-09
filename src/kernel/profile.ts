@@ -1,6 +1,4 @@
 import { readFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import path from 'node:path'
 import { hoshiFile } from './store.js'
 
 /**
@@ -11,7 +9,7 @@ import { hoshiFile } from './store.js'
  * so it survives independent of OpenCode's own config file.
  *
  **/
-const STATE_FILE = path.join(process.env.HOME ?? homedir(), '.hoshi', 'profile-state.json')
+const stateFile = () => hoshiFile('profile-state.json')
 
 export interface MachinePresetState {
   name: string
@@ -32,7 +30,7 @@ export interface MachinePresetState {
  *  here, deliberately — the wire says preset, the disk says what it said. */
 export async function readMachinePreset(): Promise<MachinePresetState | null> {
   try {
-    const raw = await readFile(STATE_FILE, 'utf8')
+    const raw = await readFile(stateFile(), 'utf8')
     const state = JSON.parse(raw) as { profile?: unknown; version?: unknown }
     if (typeof state.profile !== 'string' || !state.profile) return null
     return { name: state.profile, version: typeof state.version === 'string' ? state.version : null }
@@ -56,7 +54,7 @@ export async function readMachinePreset(): Promise<MachinePresetState | null> {
  **/
 export async function seededPaths(): Promise<Set<string>> {
   try {
-    const raw = await readFile(STATE_FILE, 'utf8')
+    const raw = await readFile(stateFile(), 'utf8')
     const state = JSON.parse(raw) as { files?: unknown }
     const files = state.files && typeof state.files === 'object' ? Object.keys(state.files) : []
     return new Set(files)

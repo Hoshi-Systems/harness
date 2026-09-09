@@ -17,7 +17,8 @@ pnpm add @hoshi/harness
 npx hoshi-harness --host 127.0.0.1 --port 4200
 ```
 
-The daemon stores state in `~/.hoshi` and uses `~/workspace` by default. Set
+The daemon stores state in `~/.hoshi` and uses `/workspace` when that mounted
+directory exists (otherwise `~/.hoshi-workspace`). Set
 `HOSHI_STATE_DIR` and `WORKSPACE_ROOT`, or pass `--state` and `--workspace`, to
 choose different locations.
 
@@ -67,6 +68,11 @@ import type { MachineEvent, MachineProfile } from '@hoshi/harness/wire'
 const harness = createHarness({ port: 4200 })
 await harness.listen()
 ```
+
+`createHarness()` applies `workspace` and `state` to the running kernel. One
+Harness may be live in a Node.js process at a time; run separate processes for
+separate machines. This reflects the process-wide route table, plugin registry,
+and host ports, and prevents their state from being silently shared.
 
 The `@hoshi/harness/wire` entry point is intended for machine clients and plugin
 authors. Internal kernel files are not a supported API.

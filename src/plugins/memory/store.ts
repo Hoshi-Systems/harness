@@ -1,7 +1,6 @@
 import { readdir, readFile, rm } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import path from 'node:path'
-import { writeHoshiAtomic, WORKSPACE_ROOT } from '../../kernel/index.js'
+import { hoshiFile, writeHoshiAtomic, WORKSPACE_ROOT } from '../../kernel/index.js'
 import { mirrorForget, mirrorSave } from './graph-mirror.js'
 
 /**
@@ -23,19 +22,18 @@ import { mirrorForget, mirrorSave } from './graph-mirror.js'
  *
  **/
 
-const HOME = process.env.HOME ?? homedir()
-const MEMORY_ROOT = path.join(HOME, '.hoshi', 'memory')
-const USER_DIR = path.join(MEMORY_ROOT, 'user')
-const PROJECTS_DIR = path.join(MEMORY_ROOT, 'projects')
+const memoryRoot = () => hoshiFile('memory')
+const userDir = () => path.join(memoryRoot(), 'user')
+const projectsDir = () => path.join(memoryRoot(), 'projects')
 /** The org knowledge mirror — a READ-ONLY copy of what the organization
  *  accepted, owned end to end by ./mirror.ts. Nothing in this module
  *  ever writes here (saveEntry/forgetEntry refuse the scope outright): "the
  *  agent cannot quietly rewrite org truth" is structural, not a prompt rule. */
-export const ORG_DIR = path.join(MEMORY_ROOT, 'org')
+export const orgDir = () => path.join(memoryRoot(), 'org')
 /** Attached long-form markdown, one file per entry that has one. A
  *  subdirectory, not a `.doc.md` suffix beside the entries, so listing the
  *  mirror can never mistake a document for an entry. */
-export const ORG_DOCUMENTS_DIR = path.join(ORG_DIR, 'documents')
+export const orgDocumentsDir = () => path.join(orgDir(), 'documents')
 
 export type MemoryKind = 'preference' | 'fact' | 'feedback' | 'decision' | 'lesson' | 'reference'
 export type MemoryScope = 'user' | 'project' | 'org'
@@ -83,11 +81,11 @@ export function memoryId(record: Pick<MemoryRecord, 'scope' | 'project' | 'name'
 /** Package-internal (also used by ./mirror.ts, which writes the mirror
  *  these paths address) — not part of the memory API. */
 export function orgFilePath(name: string): string {
-  return path.join(ORG_DIR, `${slugify(name)}.md`)
+  return path.join(orgDir(), `${slugify(name)}.md`)
 }
 
 export function orgDocumentPath(name: string): string {
-  return path.join(ORG_DOCUMENTS_DIR, `${slugify(name)}.md`)
+  return path.join(orgDocumentsDir(), `${slugify(name)}.md`)
 }
 
 /** An attached document's markdown, or null when the entry has none. Read on
@@ -129,15 +127,15 @@ export function projectSlugFromDirectory(directory: string): string | null {
 }
 
 function userFilePath(name: string): string {
-  return path.join(USER_DIR, `${slugify(name)}.md`)
+  return path.join(userDir(), `${slugify(name)}.md`)
 }
 
 function projectFilePath(project: string, name: string): string {
-  return path.join(PROJECTS_DIR, slugify(project), `${slugify(name)}.md`)
+  return path.join(projectsDir(), slugify(project), `${slugify(name)}.md`)
 }
 
 function projectDir(project: string): string {
-  return path.join(PROJECTS_DIR, slugify(project))
+  return path.join(projectsDir(), slugify(project))
 }
 
 /**
@@ -228,7 +226,7 @@ async function listMdFiles(dir: string): Promise<string[]> {
 /** Package-internal (also used by ./agents-index.ts) — not part of the memory API. */
 export async function listProjectSlugs(): Promise<string[]> {
   try {
-    const entries = await readdir(PROJECTS_DIR, { withFileTypes: true })
+    const entries = await readdir(projectsDir(), { withFileTypes: true })
     return entries
       .filter((e) => e.isDirectory())
       .map((e) => e.name)
@@ -244,8 +242,8 @@ export async function listProjectSlugs(): Promise<string[]> {
  **/
 
 function scopeDir(scope: MemoryScope, project: string | null): string {
-  if (scope === 'user') return USER_DIR
-  if (scope === 'org') return ORG_DIR
+  if (scope === 'user') return userDir()
+  if (scope === 'org') return orgDir()
   return projectDir(project!)
 }
 

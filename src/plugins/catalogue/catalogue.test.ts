@@ -18,7 +18,8 @@ import { bindTools } from '../define-tool.js'
  * does not error — it simply stops appearing in the list the model is shown,
  * which is indistinguishable from never having been written.
  *
- * SKILLS_DIR is resolved at module load, so the scratch HOME goes in first.
+ * The scratch HOME goes in first so this direct-plugin test keeps all of its
+ * state under a disposable directory.
  *
  **/
 

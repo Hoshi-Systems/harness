@@ -6,6 +6,8 @@ import { closeHttpServer } from './http/shutdown.js'
 import { narrateBoot } from './kernel/boot-narration.js'
 import { tell } from './kernel/host-ports.js'
 import { setInstallPolicy } from './kernel/install-policy.js'
+import { configureStateRoot, defaultStateRoot, resetStateRoot } from './kernel/store.js'
+import { configureWorkspaceRoot, defaultWorkspaceRoot, resetWorkspaceRoot } from './kernel/workspace.js'
 import { harnessHandler, harnessRoutes, startHarness, stopHarness, type HarnessOptions } from './runtime.js'
 
 /**
@@ -32,6 +34,11 @@ const STREAM_GRACE_MS = 2_000
  *  inside a container runtime's own SIGKILL timeout, so the LAST word on how
  *  this process dies is always ours. */
 const SHUTDOWN_DEADLINE_MS = 5_000
+
+/** The route table, plugin registry, and host ports are process-wide today.
+ * Claiming that fact at the public seam is safer than allowing two objects to
+ * silently share a route table and durable paths. */
+let activeHarness: symbol | null = null
 
 export interface HarnessConfig {
   port: number
@@ -61,12 +68,11 @@ export interface Harness {
 /** Defaults chosen to match what a machine image already provides, so a
  *  container needs no flags and a laptop needs two. */
 export function resolveConfig(input: Partial<HarnessConfig> = {}): HarnessConfig {
-  const home = process.env.HOME ?? process.cwd()
   return {
     port: input.port ?? Number(process.env.PORT ?? 4200),
     host: input.host ?? process.env.HOST ?? '127.0.0.1',
-    workspace: input.workspace ?? process.env.WORKSPACE_ROOT ?? `${home}/workspace`,
-    state: input.state ?? process.env.HOSHI_STATE_DIR ?? `${home}/.hoshi`,
+    workspace: input.workspace ?? defaultWorkspaceRoot(),
+    state: input.state ?? defaultStateRoot(),
     installs: input.installs ?? (process.env.HOSHI_INSTALLS === 'owner' ? 'owner' : 'build-only'),
   }
 }
@@ -74,13 +80,26 @@ export function resolveConfig(input: Partial<HarnessConfig> = {}): HarnessConfig
 export function createHarness(input: Partial<HarnessConfig> & HarnessOptions = {}): Harness {
   const config = resolveConfig(input)
   const app: App = createApp()
+  const owner = Symbol('harness')
   let server: Server | null = null
+  let mounted = false
 
   return {
     config,
     routes: () => harnessRoutes(),
 
     async listen() {
+      if (server) return { url: `http://${config.host}:${config.port}` }
+      if (activeHarness && activeHarness !== owner) {
+        throw new Error(
+          'A Harness is already running in this Node process. Run another Harness in a separate process.',
+        )
+      }
+      activeHarness = owner
+      configureWorkspaceRoot(config.workspace)
+      configureStateRoot(config.state)
+
+      try {
       /**
        *
        * Plugins come up BEFORE the port is bound. A machine that answers
@@ -89,11 +108,11 @@ export function createHarness(input: Partial<HarnessConfig> & HarnessOptions = {
        * indistinguishable from a feature this version does not have.
        *
        **/
-      setInstallPolicy(config.installs)
-      await startHarness({
-        ...(input.plugins ? { plugins: input.plugins } : {}),
-        ...(input.extraPlugins ? { extraPlugins: input.extraPlugins } : {}),
-      })
+        setInstallPolicy(config.installs)
+        await startHarness({
+          ...(input.plugins ? { plugins: input.plugins } : {}),
+          ...(input.extraPlugins ? { extraPlugins: input.extraPlugins } : {}),
+        })
       /**
        *
        * CORS rides inside `harnessHandler()` rather than being mounted here.
@@ -102,8 +121,11 @@ export function createHarness(input: Partial<HarnessConfig> & HarnessOptions = {
        * which a browser refuses and nothing else notices.
        *
        **/
-      app.use(harnessHandler())
-      server = createServer(toNodeListener(app))
+        if (!mounted) {
+          app.use(harnessHandler())
+          mounted = true
+        }
+        server = createServer(toNodeListener(app))
 
       /**
        *
@@ -115,7 +137,7 @@ export function createHarness(input: Partial<HarnessConfig> & HarnessOptions = {
        * exactly this for them.
        *
        **/
-      const { handleUpgrade } = wsAdapter({ ...app.websocket })
+        const { handleUpgrade } = wsAdapter({ ...app.websocket })
       /**
        *
        * Wrapped, not passed bare. `handleUpgrade` is async and `.on()` drops
@@ -129,14 +151,14 @@ export function createHarness(input: Partial<HarnessConfig> & HarnessOptions = {
        * upgrade must cost that one socket and nothing else.
        *
        **/
-      server.on('upgrade', (req, socket, head) => {
-        void handleUpgrade(req, socket, head).catch(() => socket.destroy())
-      })
-      await new Promise<void>((resolve, reject) => {
-        server!.once('error', reject)
-        server!.listen(config.port, config.host, resolve)
-      })
-      narrateBoot('success', `Listening on ${config.host}:${config.port}`)
+        server.on('upgrade', (req, socket, head) => {
+          void handleUpgrade(req, socket, head).catch(() => socket.destroy())
+        })
+        await new Promise<void>((resolve, reject) => {
+          server!.once('error', reject)
+          server!.listen(config.port, config.host, resolve)
+        })
+        narrateBoot('success', `Listening on ${config.host}:${config.port}`)
 
       /**
        *
@@ -154,8 +176,17 @@ export function createHarness(input: Partial<HarnessConfig> & HarnessOptions = {
        * on a boot screen (docs/STRUCTURE_REVIEW.md H-10).
        *
        **/
-      tell('listening', (run) => run())
-      return { url: `http://${config.host}:${config.port}` }
+        tell('listening', (run) => run())
+        return { url: `http://${config.host}:${config.port}` }
+      } catch (error) {
+        server?.close()
+        server = null
+        await stopHarness().catch(() => {})
+        resetWorkspaceRoot()
+        resetStateRoot()
+        activeHarness = null
+        throw error
+      }
     },
 
     async close() {
@@ -165,8 +196,17 @@ export function createHarness(input: Partial<HarnessConfig> & HarnessOptions = {
 
       /** Why this is not a plain `server.close()`, and what the two windows
        *  are for: `./http/shutdown.ts`. */
-      await closeHttpServer(closing, { grace: STREAM_GRACE_MS, deadline: SHUTDOWN_DEADLINE_MS })
-      await stopHarness()
+      try {
+        await closeHttpServer(closing, { grace: STREAM_GRACE_MS, deadline: SHUTDOWN_DEADLINE_MS })
+      } finally {
+        try {
+          await stopHarness()
+        } finally {
+          resetWorkspaceRoot()
+          resetStateRoot()
+          if (activeHarness === owner) activeHarness = null
+        }
+      }
     },
   }
 }

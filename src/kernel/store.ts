@@ -13,9 +13,31 @@ import path from 'node:path'
  *
  **/
 
-/** Absolute path of a file inside ~/.hoshi. */
+let configuredStateRoot: string | null = null
+
+/** The state directory used when a harness did not receive an explicit one. */
+export function defaultStateRoot(): string {
+  return process.env.HOSHI_STATE_DIR ?? path.join(process.env.HOME ?? homedir(), '.hoshi')
+}
+
+/** Point the process-wide runtime at the state directory selected by its host.
+ *
+ * The runtime deliberately has one active instance per process (see
+ * `createHarness`), so this mutable binding cannot cross-contaminate two live
+ * harnesses. Keeping it here, rather than rewriting `HOME`, also means a
+ * consumer's ordinary home directory remains theirs. */
+export function configureStateRoot(root: string): void {
+  configuredStateRoot = path.resolve(root)
+}
+
+/** Drop an explicit runtime setting after the harness shuts down. */
+export function resetStateRoot(): void {
+  configuredStateRoot = null
+}
+
+/** Absolute path of a file inside this harness's durable state directory. */
 export function hoshiFile(name: string): string {
-  return path.join(process.env.HOME ?? homedir(), '.hoshi', name)
+  return path.join(configuredStateRoot ?? defaultStateRoot(), name)
 }
 
 /** Parse a ~/.hoshi JSON file; null when missing or unreadable.

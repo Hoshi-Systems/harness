@@ -1,10 +1,9 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, openSync } from 'node:fs'
-import { homedir } from 'node:os'
 import path from 'node:path'
 import type { H3Event } from 'h3'
 import { getRequestURL } from 'h3'
-import { apiError, EDITOR_AUTH_COOKIE, requireEditorAuth, workspaceRoot } from '../../kernel/index.js'
+import { apiError, EDITOR_AUTH_COOKIE, hoshiFile, requireEditorAuth, workspaceRoot } from '../../kernel/index.js'
 import { envUrlPort } from './listening-ports.js'
 import { forwardToPort, handleTokenHandshake } from './preview-proxy.js'
 
@@ -103,7 +102,7 @@ async function startEditor(bin: string): Promise<void> {
    * belongs on the durable volume next to the sidecar's other state.
    *
    **/
-  const dataDir = path.join(process.env.HOME ?? homedir(), '.hoshi', 'editor')
+  const dataDir = hoshiFile('editor')
   mkdirSync(dataDir, { recursive: true })
   const log = openSync(path.join(dataDir, 'server.log'), 'a')
 
