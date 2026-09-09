@@ -7,9 +7,8 @@ export default defineEventHandler(async (event) => {
   /**
    *
    * Checked here rather than left to the list being filtered: hiding something
-   * is not protecting it, and a name is easy to guess. HGL is the case that
-   * matters — one DELETE and the agent's interactive cards stop rendering on
-   * that machine, with nothing anywhere saying why.
+   * is not protecting it, and a name is easy to guess. One DELETE can otherwise
+   * remove a machine capability with nothing anywhere saying why.
    *
    **/
   if (!session.internal && (await isSeededSkill(name))) {

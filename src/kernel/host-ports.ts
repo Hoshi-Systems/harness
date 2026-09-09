@@ -123,6 +123,18 @@ export interface UnattendedContext {
 }
 
 export interface KernelPorts extends UnattendedContext {
+  /** Extra standing instructions supplied by installed plugins.
+   *
+   * The harness owns the order in which a turn is assembled, but not every
+   * product convention that belongs in that prompt. A plugin may contribute
+   * complete sections here; a standalone harness simply has none. This is
+   * prompt text, not a writable AGENTS.md fragment. */
+  agentInstructions?(): string[]
+  /** Tool names that only affect the current conversation and therefore do not
+   * need a permission decision or a Customize setting. Plugins must declare
+   * these narrowly: a tool that writes, sends, or reaches outside the turn is
+   * governable even if its result happens to be shown in chat. */
+  systemToolNames?(): string[]
   /** How this machine reaches its Platform, or null when it has none.
    *
    *  A port rather than an environment read, because "this machine belongs to

@@ -12,11 +12,8 @@ import { mirrorForget, mirrorSave } from './graph-mirror.js'
  * and a second, in the separate package the tools lived in, behind the agent's
  * `memory_*` tools, 1,067 lines of it, with a comment on each asking
  * the next reader to keep them in lockstep (docs/STRUCTURE_REVIEW.md H-08).
- * They did not stay in lockstep: this side silently dropped the Generative UI
- * block from the AGENTS.md region, so any Customize edit erased instructions
- * the plugin put back on the next `memory_save`. The tools live in ./tools.ts
- * now and call this file, which is what makes that class of bug impossible
- * rather than merely discouraged.
+ * They did not stay in lockstep. The tools live in ./tools.ts now and call this
+ * file, which makes that class of bug impossible rather than merely discouraged.
  *
  * Three scopes, two of them writable. `user` and `project` are this machine's
  * own memory, written freely. `org` is the ORGANIZATION's curated knowledge,

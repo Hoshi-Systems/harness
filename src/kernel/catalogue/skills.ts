@@ -20,10 +20,10 @@ export interface Skill {
   /** Seeded by the machine profile rather than installed by the person.
    *
    *  Shown, and refused by the write routes. These are load-bearing — the
-   *  integration packs are what Customize → Integrations offers to configure,
-   *  and HGL is how the agent renders interactive cards — so a person should
-   *  see what their machine came with, and should not be able to delete it out
-   *  from under themselves. A machine flagged internal may edit them. */
+   *  integration packs are what Customize → Integrations offers to configure —
+   *  so a person should see what their machine came with, and should not be able
+   *  to delete it out from under themselves. A machine flagged internal may edit
+   *  them. */
   system?: boolean
   /** Found in the checkout rather than on the machine (`.claude/skills`,
    *  `.opencode/skill`, `.hoshi/skills`). It overrides a machine skill of the

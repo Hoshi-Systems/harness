@@ -1,9 +1,12 @@
-# Hoshi Harness
+# Harness
 
-`@hoshi/harness` is the self-hosted machine runtime behind Hoshi. It provides
-the HTTP/WebSocket server, session and provider runtime, permission handling,
-event bus, and plugin host. Platform-specific policy belongs in separately
-installed plugins.
+`@hoshi/harness` is a self-hosted machine runtime. It provides the
+HTTP/WebSocket server, session and provider runtime, permission handling, event
+bus, and plugin host. Product UI protocols, organization policy, and vendor
+integrations belong in separately installed plugins.
+
+See the [architecture diagram](./docs/architecture.md) for the runtime boundary
+and [plugin authoring guide](./docs/plugin-authoring.md) for the extension API.
 
 ## Run it
 
@@ -65,8 +68,13 @@ const harness = createHarness({ port: 4200 })
 await harness.listen()
 ```
 
-The `@hoshi/harness/wire` and `@hoshi/harness/hgl` entry points are intended
-for clients and plugin authors. Internal kernel files are not a supported API.
+The `@hoshi/harness/wire` entry point is intended for machine clients and plugin
+authors. Internal kernel files are not a supported API.
+
+Plugins can also contribute complete prompt sections through
+`agentInstructions` and declare conversation-only tools through
+`systemToolNames`. Those extension points keep a product protocol out of the
+core while letting the daemon assemble one coherent runtime.
 
 ## Develop
 
@@ -76,6 +84,7 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm check:dist
+pnpm check:boundary
 ```
 
 The package is released under the [MIT License](./LICENSE).

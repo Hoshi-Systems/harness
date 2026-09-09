@@ -5,7 +5,7 @@ import { turnParts } from './turn-parts.js'
 /**
  *
  * The regression these pin: a turn that asked questions mid-answer used to be
- * stored as [all tools, one text block] — so at turn end every `ui_ask` form
+ * stored as [all tools, one text block] — so at turn end every interactive form
  * jumped above the prose and the dialog flattened into two piles. The stored
  * shape must follow the order things happened in, which `textAt` records.
  *
@@ -13,7 +13,7 @@ import { turnParts } from './turn-parts.js'
 
 const tool = (callId: string, textAt?: number) => ({
   callId,
-  name: 'ui_ask',
+  name: 'conversation_card',
   status: 'completed',
   ...(textAt !== undefined ? { textAt } : {}),
 })

@@ -12,12 +12,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mikield/hoshi-harness.git"
+    "url": "git+https://github.com/Hoshi-Systems/harness.git"
   },
   "bugs": {
-    "url": "https://github.com/mikield/hoshi-harness/issues"
+    "url": "https://github.com/Hoshi-Systems/harness/issues"
   },
-  "homepage": "https://github.com/mikield/hoshi-harness#readme",
+  "homepage": "https://github.com/Hoshi-Systems/harness#readme",
   "engines": {
     "node": ">=22"
   },
@@ -35,10 +35,6 @@
     "./wire": {
       "types": "./dist/wire/index.d.ts",
       "default": "./dist/wire/index.js"
-    },
-    "./hgl": {
-      "types": "./dist/hgl.d.ts",
-      "default": "./dist/hgl.js"
     }
   },
   "files": [
@@ -49,10 +45,11 @@
   },
   "scripts": {
     "dev": "tsx watch src/daemon/cli.ts serve --port 4200 --host 127.0.0.1",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "check:dist": "node scripts/check-dist.mjs"
+    "check:dist": "node scripts/check-dist.mjs",
+    "check:boundary": "node scripts/check-boundary.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.64",

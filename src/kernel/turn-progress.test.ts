@@ -92,7 +92,7 @@ describe('the step a row reports', () => {
   it('reports WHICH argument the subject came from', () => {
     expect(describeStep('grep', { pattern: 'beetles' }).field).toBe('pattern')
     expect(describeStep('task', { agent: 'reviewer', prompt: 'look' }).field).toBe('agent')
-    expect(describeStep('skill', { name: 'hgl' }).field).toBe('name')
+    expect(describeStep('skill', { name: 'custom-protocol' }).field).toBe('name')
   })
 
   it('survives input that is not an object', () => {

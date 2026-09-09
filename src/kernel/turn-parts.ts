@@ -25,8 +25,8 @@ export interface LiveToolRecord {
   ms?: number
   /** How much of the turn's text had streamed when this call STARTED — the
    *  interleaving anchor. Without it the stored turn clustered every tool
-   *  above one concatenated text block, so a session that asked three `ui_ask`
-   *  questions re-rendered at turn end with all three forms stacked on top and
+   *  above one concatenated text block, so a session that asked several
+   *  interactive questions re-rendered at turn end with them stacked on top and
    *  the whole conversation's prose underneath — a dialog flattened into two
    *  piles. The transcript is the durable record of the ORDER things happened
    *  in, and this is the one number that order needs. */

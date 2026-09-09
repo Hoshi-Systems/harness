@@ -1,21 +1,21 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { buildApprover, toolNames } from './tools.js'
+import { configureKernel } from './host-ports.js'
 
 /**
  * ── The machine's own plumbing is not a permission question ──────────────────
  *
  * Gating these produced the worst failure this codebase has: a permission
  * nobody can answer does not degrade the turn, it hangs the turn — forever.
- * `ui_ask` made that circular, because it is the tool for asking the person
- * something: the machine blocked waiting for permission to ask, on a card that
- * only appears if the asking worked.
  *
  * So the assertion is not "these are allowed" but "these are never asked about,
  * and never offered as something to configure".
  *
  **/
 
-const SYSTEM = ['ui_render', 'ui_ask', 'ui_html', 'user_whoami', 'task_route', 'skill', 'task']
+const SYSTEM = ['user_whoami', 'task_route', 'skill', 'task']
+
+afterEach(() => configureKernel({}))
 
 describe('system tools', () => {
   it('are approved without consulting anything', async () => {
@@ -29,8 +29,8 @@ describe('system tools', () => {
     /**
      *
      * An agent may tighten the machine's levels — but not into a deadlock. A
-     * definition that set `ui_ask: deny` would leave an agent told to ask the
-     * user with no way to ask them.
+     * definition that set a system tool to deny would leave an agent unable to
+     * perform the machine plumbing it needs.
      *
      **/
     const approve = buildApprover('ses_1', '/workspace', {
@@ -39,13 +39,20 @@ describe('system tools', () => {
       prompt: '',
       model: null,
       tools: {},
-      permission: { ui_ask: 'deny', task: 'deny' },
+      permission: { task: 'deny' },
       readOnly: false,
       builtIn: false,
       customised: true,
     })
-    await expect(approve({ toolName: 'ui_ask', toolCallId: 'call_1', input: {} })).resolves.toBe(true)
-    await expect(approve({ toolName: 'task', toolCallId: 'call_2', input: {} })).resolves.toBe(true)
+    await expect(approve({ toolName: 'task', toolCallId: 'call_1', input: {} })).resolves.toBe(true)
+  })
+
+  it('honours a product plugin declaring its conversation-only tools', async () => {
+    configureKernel({ systemToolNames: () => ['conversation_card'] })
+    const approve = buildApprover('ses_1', '/workspace')
+
+    await expect(approve({ toolName: 'conversation_card', toolCallId: 'call_1', input: {} })).resolves.toBe(true)
+    expect(toolNames()).not.toContain('conversation_card')
   })
 
   it('are absent from the list Customize governs', () => {

@@ -681,13 +681,12 @@ async function run(
         })
         /**
          *
-         * Written now, not at the next opportunity. A tool that BLOCKS is the
-         * case: `ui_ask` stops the turn until a person answers the form it put
-         * on screen, and until this flush existed nothing about it reached the
-         * transcript — no text was streaming to trigger a flush and no
-         * completion was coming. A tab reloaded while the form was up found a
-         * turn with nothing in it, which is the same disappearing act a
-         * half-written answer used to do, one layer down.
+         * Written now, not at the next opportunity. An interactive plugin may
+         * stop the turn until a person answers, and until this flush existed
+         * nothing about it reached the transcript — no text was streaming to
+         * trigger a flush and no completion was coming. A tab reloaded while
+         * the prompt was up found a turn with nothing in it, which is the same
+         * disappearing act a half-written answer used to do, one layer down.
          *
          **/
         void flushLive(turn)
@@ -733,12 +732,10 @@ async function run(
           ...(output ? { output } : {}),
           /**
            *
-           * The result's own metadata rides along. A generative-UI answer is
-           * the case that proves why: `ui_ask` reports the widget's outcome
-           * there, and a client that rebuilt the tool part from an event
-           * without it showed the form as "not answered" one instant after the
-           * person answered it — correct again only after a reload, because the
-           * transcript had what the event had left out.
+           * The result's own metadata rides along. An interactive plugin can
+           * report an outcome there; a client that rebuilt the tool part from
+           * an event without it would show an already-answered prompt as still
+           * pending until a reload, even though the transcript had the answer.
            *
            **/
           ...(metadata ? { metadata } : {}),

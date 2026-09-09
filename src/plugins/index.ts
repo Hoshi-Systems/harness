@@ -1,6 +1,5 @@
 import type { RegisteredPlugin } from './define.js'
 import catalogue from './catalogue/index.js'
-import widgets from './widgets/index.js'
 import web_control from './web-control/index.js'
 import workflows from './workflows/index.js'
 import git from './git/index.js'
@@ -55,12 +54,11 @@ export const firstParty: RegisteredPlugin[] = [
   triggers,
   voice,
   web_control,
-  widgets,
   workflows,
 ]
 
 export { definePlugin, hostBinding, isOwnPlugin } from './define.js'
-export type { Plugin, PluginHost, RegisteredPlugin, SystemDependency } from './define.js'
+export type { Plugin, PluginHost, PluginToolContext, RegisteredPlugin, SystemDependency } from './define.js'
 export { bindTools, defineHoshiTool, jsonish, z } from './define-tool.js'
 export type {
   HoshiToolContext,

@@ -19,7 +19,7 @@ describe('subjectOf', () => {
   })
 
   it('has no subject for a tool nobody scopes by argument', () => {
-    expect(subjectOf('ui_ask', { question: 'ok?' })).toBeNull()
+    expect(subjectOf('conversation_card', { question: 'ok?' })).toBeNull()
   })
 })
 
@@ -98,6 +98,6 @@ describe('grantSuggestions', () => {
   })
 
   it('offers nothing to scope by when the tool has no subject', () => {
-    expect(grantSuggestions('ui_render', {})).toEqual({ exact: [], prefix: [] })
+    expect(grantSuggestions('conversation_card', {})).toEqual({ exact: [], prefix: [] })
   })
 })

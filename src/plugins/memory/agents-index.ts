@@ -18,10 +18,10 @@ import {
  * There is ONE renderer, and there is a reason to say so. A second copy used to
  * live beside the agent's `memory_*` tools, with a comment on each half asking
  * the next reader to keep them in lockstep; they drifted anyway. This side
- * silently dropped the Generative UI block, so any Customize edit erased
+ * silently dropped part of the managed region, so any Customize edit erased
  * instructions the tool side would put back on the next `memory_save`. The
- * tools call ./store.ts now (docs/STRUCTURE_REVIEW.md H-08), which is what
- * makes that impossible rather than merely discouraged.
+ * tools call ./store.ts now (docs/STRUCTURE_REVIEW.md H-08), which makes that
+ * impossible rather than merely discouraged.
  *
  **/
 
@@ -196,30 +196,10 @@ export async function regenerateAgentsIndex(): Promise<void> {
   }
   lines.push('')
   lines.push(...renderOrgSection(orgEntries))
-  lines.push('## Generative UI')
-  lines.push('')
-  lines.push(
-    "The chat renders rich interactive UI, not just text — `ui_render` (display), `ui_ask` (blocking structured input), `ui_html` (escape hatch when the catalog can't express the visual). Whenever structured data or a real decision is the answer, use them instead of prose — never print a markdown table of numbers, never ask for structured input in plain text.",
-  )
-  lines.push('')
-  lines.push(
-    "The `hgl` skill is the ONLY authoritative reference for the document format these tools accept. Read it before building UI for the first time in a session, and read it again whenever you are even slightly unsure how to express a surface — never emit HGL from memory of an older format. Don't re-describe rendered UI in text; the user already sees it.",
-  )
-  lines.push('')
-  /**
-   *
-   * RESTORED. This block lived only in the SEEDED copy
-   * (packages/machine-profile/base/AGENTS.md) and never here, so it survived
-   * exactly until the first `memory_save` regenerated the managed region and
-   * wrote over it — the same silent drift the header of this file describes,
-   * one section along. A machine that had been running for a day answered
-   * "draw me a logo" with a paragraph describing one.
-   *
-   **/
   lines.push('## Images')
   lines.push('')
   lines.push(
-    "When the user asks for a picture — an illustration, logo, asset, or an edit of an existing image — use `image_generate` (it drives this machine's image-capable AI model and shows the result in the chat). Never answer such requests with a text description of what the image would look like. Charts and data views are NOT images — those are `ui_render`'s job.",
+    "When the user asks for a picture — an illustration, logo, asset, or an edit of an existing image — use `image_generate` (it drives this machine's image-capable AI model and shows the result in the chat). Never answer such requests with a text description of what the image would look like.",
   )
   lines.push('')
   lines.push('## Session naming')

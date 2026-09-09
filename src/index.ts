@@ -207,6 +207,7 @@ export {
 export type {
   Plugin,
   PluginHost,
+  PluginToolContext,
   RegisteredPlugin,
   SystemDependency,
   PluginStatus,

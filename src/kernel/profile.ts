@@ -49,10 +49,9 @@ export async function readMachinePreset(): Promise<MachinePresetState | null> {
  * of names in the code — would be a second copy of the profile's contents that
  * drifts the first time somebody adds a skill to it.
  *
- * It matters because these are not ordinary capabilities. HGL is what the agent
- * renders interactive cards with; a person who deletes it out of a list they
- * were browsing has quietly broken generative UI on their own machine, with
- * nothing to tell them what changed.
+ * It matters because these are not ordinary capabilities. A person who deletes
+ * one out of a list they were browsing has quietly broken part of their machine,
+ * with nothing to tell them what changed.
  *
  **/
 export async function seededPaths(): Promise<Set<string>> {

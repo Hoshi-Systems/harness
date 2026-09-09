@@ -282,8 +282,12 @@ const ungoverned = new Set<string>()
  *  machine SAYS SO instead — loudly, once per tool, on the log and on the event
  *  bus. A gap that announces itself is one somebody can close; a gap that hangs
  *  a turn is one somebody has to bisect for. */
+function systemToolNames(): Set<string> {
+  return new Set([...SYSTEM_TOOLS, ...(ports().systemToolNames?.() ?? [])])
+}
+
 function reportUngoverned(tool: string): void {
-  if (ungoverned.has(tool) || SYSTEM_TOOLS.has(tool) || toolNames().includes(tool)) return
+  if (ungoverned.has(tool) || systemToolNames().has(tool) || toolNames().includes(tool)) return
   ungoverned.add(tool)
   console.warn(
     `[harness] "${tool}" asked for permission but is not in this machine's tool list — ` +
@@ -309,7 +313,7 @@ export function buildApprover(sessionId: string, directory: string, agent?: Agen
      * reliably produced was a turn that never finished.
      *
      **/
-    if (SYSTEM_TOOLS.has(call.toolName)) return true
+    if (systemToolNames().has(call.toolName)) return true
     const level = effectiveLevel(await levelFor(call.toolName, call.input), agent?.permission?.[call.toolName])
     if (level === 'deny') return false
     if (level === 'allow') return true
@@ -341,7 +345,6 @@ function effectiveLevel(machine: Level, agent?: Level): Level {
  * The test is not "is it harmless" but "does it change anything outside the
  * conversation". None of these do:
  *
- *   ui_render / ui_ask / ui_html   draw in the thread the person is reading
  *   user_whoami                    reads who the person already is
  *   task_route                     sizes a request; changes nothing
  *   skill                          loads prose this machine already ships
@@ -355,15 +358,12 @@ function effectiveLevel(machine: Level, agent?: Level): Level {
  *                                  asking permission to write its own title
  *
  * Asking about them was worse than noise. A permission nobody answers hangs the
- * turn forever, and `ui_ask` exists to ask the person something — so the machine
- * blocked, waiting for permission to ask, on a card the person could only see if
- * the asking had worked. Delegation had the same shape: an unattended turn could
- * not delegate at all, because no one was there to allow it.
+ * turn forever. Delegation had that shape: an unattended turn could not delegate
+ * at all, because no one was there to allow it. Product plugins can declare
+ * their own conversation-only tools through `systemToolNames`, without making
+ * the harness know their protocol.
  */
 const SYSTEM_TOOLS = new Set([
-  'ui_render',
-  'ui_ask',
-  'ui_html',
   'user_whoami',
   'task_route',
   'skill',
@@ -398,6 +398,6 @@ const SYSTEM_TOOLS = new Set([
  *  which that screen has no question to ask about. */
 export function toolNames(): string[] {
   return [...Object.keys(builtInTools(process.cwd())), ...(ports().extraToolNames?.() ?? [])]
-    .filter((name) => !SYSTEM_TOOLS.has(name))
+    .filter((name) => !systemToolNames().has(name))
     .sort()
 }

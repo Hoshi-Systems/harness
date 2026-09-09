@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { ports } from './host-ports.js'
 import { hoshiFile } from './store.js'
 import { WORKSPACE_ROOT } from './workspace.js'
 
@@ -30,11 +31,13 @@ const AGENTS_MD = () => hoshiFile('AGENTS.md')
  *  no AGENTS.md is a valid machine — an unseeded one — so its absence is an
  *  empty string, never a failed turn. */
 export async function machineInstructions(): Promise<string> {
+  let saved = ''
   try {
-    return (await readFile(AGENTS_MD(), 'utf8')).trim()
+    saved = (await readFile(AGENTS_MD(), 'utf8')).trim()
   } catch {
-    return ''
+    // An unseeded harness is valid; extensions can still supply instructions.
   }
+  return systemPrompt(saved, ...(ports().agentInstructions?.() ?? []))
 }
 
 /**
