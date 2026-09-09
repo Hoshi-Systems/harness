@@ -30,10 +30,16 @@ describe('loading a plugin package', () => {
     const file = fixture(
       'own.mjs',
       `import { definePlugin } from ${JSON.stringify(definePluginModule)}
-       export default [definePlugin({ name: 'fixture', description: 'A plugin from outside', setup() {} })]`,
+       export default [definePlugin({
+         name: 'fixture',
+         description: 'A plugin from outside',
+         capability: { id: 'fixture.example', title: 'Fixture', description: 'A conformance fixture.' },
+         setup() {},
+       })]`,
     )
     const [loaded] = await loadPluginModules([file])
     expect(loaded.plugins.map((plugin) => plugin.name)).toEqual(['fixture'])
+    expect(loaded.plugins[0]?.capability?.id).toBe('fixture.example')
   })
 
   it('takes a plain relative path that names a file as that file, not as a package', async () => {

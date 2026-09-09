@@ -22,6 +22,11 @@ export default [
   definePlugin({
     name: 'greetings',
     description: 'A small example capability',
+    capability: {
+      id: 'greetings.hello',
+      title: 'Greetings',
+      description: 'Returns a friendly greeting.',
+    },
     setup(host) {
       host.routes.get('/greetings', () => ({ greeting: 'hello' }))
     },
@@ -43,6 +48,33 @@ kernel.
 Use `host.routes`, `host.tools`, `host.events`, and `host.jobs` to contribute
 behaviour. Do not import internal harness paths; only the package root and its
 `/wire` export are stable public APIs.
+
+## Describe what the machine can do
+
+`capability` is the public, stable identity of the unit your plugin adds. Its
+ID must begin with the plugin name (`greetings.hello` for `greetings`), is
+validated before startup, and cannot be claimed by another loaded plugin.
+The Harness supplies the mutable facts itself: whether setup succeeded, the
+routes and tools you registered, and the system dependencies and ports you
+declared.
+
+```mermaid
+flowchart LR
+  D[Plugin declaration] --> R[Runtime registry]
+  H[host.routes / host.tools] --> R
+  R --> P[GET /capabilities]
+  P --> C[CLI, product UI, or Reference Console]
+```
+
+`GET /capabilities` is owner-authenticated and is for rendering, discovery,
+and diagnosis — not authorization. It never makes a route or tool accessible;
+those keep their own checks. See [Capability Passport](./capability-passport.md)
+for the full wire contract.
+
+During the pre-1.0 migration, `capability` is optional for existing external
+plugins. Such a plugin still runs, but is absent from the Passport. New plugins
+should always declare it; it becomes mandatory at the 1.0 compatibility
+boundary.
 
 ## Product conventions
 
