@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>Harness Reference Console</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <a class="wordmark" href="https://github.com/Hoshi-Systems/harness">Harness</a>
+        <p>Reference Console</p>
+      </header>
+
+      <section class="intro" aria-labelledby="page-title">
+        <div class="machine-mark" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div>
+          <h1 id="page-title">See the machine<br />you actually have.</h1>
+          <p>
+            A read-only view of a running Harness. Inspect capabilities, owners,
+            dependencies, routes, and tools from the public Capability Passport.
+          </p>
+        </div>
+      </section>
+
+      <section class="connection" aria-labelledby="connection-title">
+        <div class="section-heading">
+          <p class="kicker">Connection</p>
+          <h2 id="connection-title">Inspect one machine</h2>
+        </div>
+        <form id="connection-form" novalidate>
+          <label>
+            Machine URL
+            <input id="machine-url" name="machine-url" type="url" value="http://127.0.0.1:4200" autocomplete="url" required />
+          </label>
+          <label>
+            Owner bearer token
+            <input id="token" name="token" type="password" autocomplete="off" spellcheck="false" required />
+          </label>
+          <button id="inspect" type="submit">Inspect machine</button>
+        </form>
+        <p class="connection-note">The token is sent only in the request header, then cleared. Nothing is stored.</p>
+        <p id="message" class="message" role="status" aria-live="polite"></p>
+      </section>
+
+      <section id="empty-state" class="empty-state">
+        <p class="kicker">Capability Passport</p>
+        <p>Connect to render the machine’s live, safe-to-display inventory.</p>
+      </section>
+
+      <section id="passport" class="passport" hidden aria-live="polite">
+        <div class="passport-head">
+          <div>
+            <p class="kicker">Capability Passport</p>
+            <h2 id="passport-title">Machine inventory</h2>
+            <p id="machine-origin" class="origin"></p>
+          </div>
+          <div class="schema">Schema <strong id="schema-version"></strong></div>
+        </div>
+        <dl class="totals" aria-label="Machine capability summary">
+          <div><dt>Capabilities</dt><dd id="total-capabilities">0</dd></div>
+          <div><dt>Ready</dt><dd id="total-ready">0</dd></div>
+          <div><dt>Needs attention</dt><dd id="total-degraded">0</dd></div>
+          <div><dt>Owners</dt><dd id="total-owners">0</dd></div>
+        </dl>
+        <div id="capabilities" class="capabilities"></div>
+      </section>
+    </main>
+    <footer>Harness Reference Console · reads <code>GET /capabilities</code> only</footer>
+    <script type="module" src="./console.js"></script>
+  </body>
+</html>
