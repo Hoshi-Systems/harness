@@ -1,0 +1,84 @@
+{
+  "name": "@hoshi/harness",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "description": "A self-hosted agent harness and machine API.",
+  "keywords": [
+    "agent",
+    "harness",
+    "self-hosted",
+    "hoshi"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mikield/hoshi-harness.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mikield/hoshi-harness/issues"
+  },
+  "homepage": "https://github.com/mikield/hoshi-harness#readme",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.0.8",
+  "bin": {
+    "hoshi-harness": "./dist/daemon/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./wire": {
+      "types": "./dist/wire/index.d.ts",
+      "default": "./dist/wire/index.js"
+    },
+    "./hgl": {
+      "types": "./dist/hgl.d.ts",
+      "default": "./dist/hgl.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "tsx watch src/daemon/cli.ts serve --port 4200 --host 127.0.0.1",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "check:dist": "node scripts/check-dist.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.64",
+    "@openharness/core": "0.7.0",
+    "ai": "^6.0.246",
+    "cron-parser": "^5.6.2",
+    "crossws": "^0.3.5",
+    "h3": "^1.15.11",
+    "jose": "^6.2.4",
+    "node-pty": "^1.1.0",
+    "tar-stream": "^3.2.0",
+    "unbzip2-stream": "^1.4.3",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/tar-stream": "^3.1.4",
+    "playwright-core": "1.62.0",
+    "tsx": "^4.23.1",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "@openharness/core": "patches/@openharness__core.patch"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+diff --git a/dist/agent.js b/dist/agent.js
+--- a/dist/agent.js
++++ b/dist/agent.js
+@@ -723,8 +723,10 @@
+ // ── Helpers ──────────────────────────────────────────────────────────
+ function toTokenUsage(usage) {
+     return {
+         inputTokens: usage.inputTokens,
+         outputTokens: usage.outputTokens,
+-        totalTokens: usage.totalTokens,
++        totalTokens: usage.totalTokens,
++        reasoningTokens: usage.outputTokenDetails?.reasoningTokens ?? usage.reasoningTokens,
++        cachedInputTokens: usage.inputTokenDetails?.cacheReadTokens ?? usage.cachedInputTokens,
+     };
+ }
+diff --git a/dist/agent.d.ts b/dist/agent.d.ts
+--- a/dist/agent.d.ts
++++ b/dist/agent.d.ts
+@@ -6,5 +6,7 @@
+ export interface TokenUsage {
+     inputTokens: number | undefined;
+     outputTokens: number | undefined;
+-    totalTokens: number | undefined;
++    totalTokens: number | undefined;
++    reasoningTokens?: number | undefined;
++    cachedInputTokens?: number | undefined;
+ }
