@@ -13,6 +13,7 @@ import route_memory_index_post from './memory.index.post.js'
 export default definePlugin({
   name: 'memory',
   description: "The machine's own notes, and the knowledge somebody else curates for it",
+  capability: { id: 'memory.knowledge', title: 'Machine memory', description: "The machine's own notes, and the knowledge somebody else curates for it" },
 
   uses: ['orgKnowledge'],
 

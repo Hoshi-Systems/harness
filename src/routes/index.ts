@@ -7,6 +7,7 @@ import route_system_get from './system.get.js'
 import route_workspace_delete from './workspace.delete.js'
 
 import plugins_index_get from './plugins.index.get.js'
+import capabilities_get from './capabilities.get.js'
 import plugins_name_install_post from './plugins.name.install.post.js'
 import route_agents_name_delete from './agents.name.delete.js'
 import route_agents_name_patch from './agents.name.patch.js'
@@ -97,6 +98,7 @@ export function registerKernelRoutes(table: RouteTable): void {
   table.add('DELETE', '/workspace', 'kernel', route_workspace_delete)
 
   table.add('GET', '/plugins', 'kernel', plugins_index_get)
+  table.add('GET', '/capabilities', 'kernel', capabilities_get)
   table.add('POST', '/plugins/:name/install', 'kernel', plugins_name_install_post)
   table.add('DELETE', '/sessions/:id', 'kernel', sessions_id_delete)
   table.add('GET', '/sessions/:id', 'kernel', sessions_id_get)

@@ -16,6 +16,7 @@ import route_isolation_get from './isolation.get.js'
 export default definePlugin({
   name: 'isolation',
   description: 'What this machine’s host can sandbox',
+  capability: { id: 'isolation.sandbox', title: 'Host sandboxing', description: 'What this machine’s host can sandbox' },
 
   setup(host) {
     host.routes.get('/isolation', route_isolation_get)

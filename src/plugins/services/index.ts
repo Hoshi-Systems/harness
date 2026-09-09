@@ -30,6 +30,7 @@ import route_ports_get from './ports.get.js'
 export default definePlugin({
   name: 'services',
   description: 'Processes, listening ports and preview servers',
+  capability: { id: 'services.processes', title: 'Local services', description: 'Processes, listening ports and preview servers' },
 
   setup(host) {
     /**

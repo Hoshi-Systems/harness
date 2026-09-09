@@ -246,6 +246,7 @@ export {
 } from './plugins/index.js'
 export type {
   Plugin,
+  CapabilityDeclaration,
   PluginHost,
   PluginToolContext,
   RegisteredPlugin,

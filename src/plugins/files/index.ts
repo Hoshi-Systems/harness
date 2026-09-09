@@ -15,6 +15,7 @@ import search from './files.search.get.js'
 export default definePlugin({
   name: 'files',
   description: 'The file tree, viewer and search',
+  capability: { id: 'files.workspace', title: 'Workspace files', description: 'The file tree, viewer and search' },
 
   setup(host) {
     host.routes.get('/files/list', list)

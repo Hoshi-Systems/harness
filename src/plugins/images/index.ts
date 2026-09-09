@@ -20,6 +20,7 @@ import { imageTools } from './tools.js'
 export default definePlugin({
   name: 'images',
   description: 'Generating an image from a turn',
+  capability: { id: 'images.generation', title: 'Image generation', description: 'Generating an image from a turn' },
 
   setup(host) {
     host.tools.add(

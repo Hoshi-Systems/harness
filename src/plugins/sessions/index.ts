@@ -18,6 +18,7 @@ import { sessionTools, sessionToolNames } from './tools.js'
 export default definePlugin({
   name: 'sessions',
   description: 'The session a turn is running in, as tools that turn can call',
+  capability: { id: 'sessions.turns', title: 'Agent sessions', description: 'The session a turn is running in, as tools that turn can call' },
 
   setup(host) {
     host.tools.add(sessionTools, sessionToolNames)

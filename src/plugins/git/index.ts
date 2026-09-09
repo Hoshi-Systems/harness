@@ -15,6 +15,7 @@ import route_git_status_get from './git.status.get.js'
 export default definePlugin({
   name: 'git',
   description: 'Repositories, pull requests, and the loop that repairs red CI',
+  capability: { id: 'git.repositories', title: 'Repositories', description: 'Repositories, pull requests, and the loop that repairs red CI' },
 
   uses: ['dispatch', 'mayProceed', 'notify', 'platform', 'spendBlocked'],
 

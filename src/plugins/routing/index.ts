@@ -21,6 +21,7 @@ import { routerTools } from './tools.js'
 export default definePlugin({
   name: 'routing',
   description: 'Sizing a task before the agent recruits for it',
+  capability: { id: 'routing.task-sizing', title: 'Task routing', description: 'Sizing a task before the agent recruits for it' },
 
   setup(host) {
     host.tools.add(

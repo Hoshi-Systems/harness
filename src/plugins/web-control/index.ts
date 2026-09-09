@@ -31,6 +31,7 @@ import { browserTools } from './tools.js'
 export default definePlugin({
   name: 'web-control',
   description: 'Drive a real browser from a turn',
+  capability: { id: 'web-control.browser', title: 'Browser control', description: 'Drive a real browser from a turn' },
   system: [chrome],
 
   uses: ['display'],

@@ -19,6 +19,7 @@ import route_terminals_id_socket from './terminals.id.socket.all.js'
 export default definePlugin({
   name: 'terminal',
   description: 'Shells on the machine, and the sockets that drive them',
+  capability: { id: 'terminal.shells', title: 'Terminal shells', description: 'Shells on the machine, and the sockets that drive them' },
 
   setup(host) {
     /**

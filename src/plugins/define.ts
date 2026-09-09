@@ -3,6 +3,16 @@ import type { ToolSet } from 'ai'
 import type { MachineEvent } from '../kernel/events.js'
 import type { KernelPorts, UnattendedContext } from '../kernel/host-ports.js'
 
+/** The durable identity a plugin contributes to the machine's Capability
+ * Passport. A plugin can be useful without an HTTP route or a tool; this is
+ * the one thing a product can use to name that useful unit consistently. */
+export interface CapabilityDeclaration {
+  /** Stable, plugin-scoped id: `${plugin.name}.something`. */
+  id: string
+  title: string
+  description: string
+}
+
 /**
  * ── What a plugin is ─────────────────────────────────────────────────────────
  *
@@ -135,6 +145,15 @@ export interface SystemDependency {
 export interface Plugin<Config = Record<string, never>> {
   name: string
   description: string
+  /**
+   * What this plugin contributes to the machine's public Capability Passport.
+   *
+   * Optional only while third-party plugins migrate to the pre-1.0 contract.
+   * First-party plugins always declare one; a plugin without it remains fully
+   * functional but is deliberately absent from `/capabilities` rather than
+   * being guessed from a package name.
+   */
+  capability?: CapabilityDeclaration
   system?: SystemDependency[]
   /**
    *
@@ -247,6 +266,7 @@ export function hostBinding(): {
 export interface RegisteredPlugin {
   name: string
   description: string
+  capability?: CapabilityDeclaration
   system?: SystemDependency[]
   uses?: Array<keyof KernelPorts>
   /** Parse the input for this plugin. Throws with a readable message. */
@@ -286,6 +306,7 @@ export function definePlugin<Config = Record<string, never>>(plugin: Plugin<Conf
   const registered: RegisteredPlugin = {
     name: plugin.name,
     description: plugin.description,
+    capability: plugin.capability,
     system: plugin.system,
     uses: plugin.uses,
     configure: (input) => (plugin.config ? plugin.config(input) : undefined),

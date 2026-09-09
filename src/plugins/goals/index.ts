@@ -10,6 +10,7 @@ import route_goals_index_post from './goals.index.post.js'
 export default definePlugin({
   name: 'goals',
   description: 'A standing objective the machine works toward on its own',
+  capability: { id: 'goals.autonomy', title: 'Standing goals', description: 'A standing objective the machine works toward on its own' },
 
   setup(host) {
     /**

@@ -19,6 +19,7 @@ import route_triggers_webhooks_index_post from './triggers.webhooks.post.js'
 export default definePlugin({
   name: 'triggers',
   description: 'Schedules and webhooks — the machine firing work at itself',
+  capability: { id: 'triggers.automation', title: 'Machine triggers', description: 'Schedules and webhooks — the machine firing work at itself' },
 
   setup(host) {
     rememberContext(host.unattended)

@@ -6,6 +6,7 @@ import type { RouteTable, Method } from '../http/router.js'
 import { extendKernel, ports } from '../kernel/host-ports.js'
 import type { KernelPorts } from '../kernel/host-ports.js'
 import type { PluginHost, PluginToolContext, RegisteredPlugin, SystemDependency } from './define.js'
+import type { Capability } from '../wire/capabilities.js'
 import { verifyDependency } from './system.js'
 
 /**
@@ -45,6 +46,7 @@ interface Started {
     build: (context: PluginToolContext) => ToolSet | Promise<ToolSet>
     names: () => string[]
   }>
+  routes: Array<{ method: Method; path: string }>
   replays: Array<(push: (event: MachineEvent) => void) => void | Promise<void>>
 }
 
@@ -88,6 +90,7 @@ function hostFor(entry: Started, table: RouteTable): PluginHost {
        *
        **/
       table.add(method, path, name, gated(entry, handler))
+      entry.routes.push({ method, path })
     }
   return {
     tools: { add: (build, names) => entry.tools.push({ build, names }) },
@@ -309,12 +312,14 @@ export async function startPlugins(
   table: RouteTable,
   configuration: Record<string, unknown> = {},
 ): Promise<void> {
+  validateCapabilities(plugins)
   for (const plugin of plugins) {
     const entry: Started = {
       plugin,
       status: { name: plugin.name, description: plugin.description, state: 'ready', reason: null },
       timers: [],
       tools: [],
+      routes: [],
       replays: [],
     }
 
@@ -376,6 +381,36 @@ export async function startPlugins(
     }
 
     started.push(entry)
+  }
+}
+
+/** Validate declarations before any plugin begins side-effecting the machine.
+ *
+ * A capability is public vocabulary. Letting a typo become a second identity,
+ * or letting two plugins both claim one, would make a Passport look coherent
+ * while a client acted on the wrong extension. Missing declarations remain
+ * allowed only for pre-1.0 compatibility; present declarations are strict.
+ */
+function validateCapabilities(plugins: RegisteredPlugin[]): void {
+  const owners = new Map<string, string>()
+  for (const plugin of plugins) {
+    const declaration = plugin.capability
+    if (!declaration) continue
+    if (!declaration.id.startsWith(`${plugin.name}.`)) {
+      throw new Error(
+        `Capability "${declaration.id}" belongs to plugin "${plugin.name}" but must start with "${plugin.name}.".`,
+      )
+    }
+    if (!declaration.title.trim() || !declaration.description.trim()) {
+      throw new Error(`Capability "${declaration.id}" must have a non-empty title and description.`)
+    }
+    const owner = owners.get(declaration.id)
+    if (owner) {
+      throw new Error(
+        `Capability "${declaration.id}" is claimed by both "${owner}" and "${plugin.name}". A capability has one owner.`,
+      )
+    }
+    owners.set(declaration.id, plugin.name)
   }
 }
 
@@ -462,6 +497,35 @@ export async function pluginTools(context: { sessionId: string; directory: strin
 
 export function pluginToolNames(): string[] {
   return started.flatMap((entry) => entry.tools.flatMap((contribution) => contribution.names()))
+}
+
+/**
+ * The plugin half of the Capability Passport. This remains a projection of the
+ * entries above: a failed setup has already had its unsafe tools cleared, and
+ * a route registered before that failure remains listed but is request-gated
+ * to the same degraded state.
+ */
+export function pluginCapabilities(): Capability[] {
+  return started.flatMap((entry) => {
+    const declaration = entry.plugin.capability
+    if (!declaration) return []
+    return [{
+      id: declaration.id,
+      title: declaration.title,
+      description: declaration.description,
+      owner: { kind: 'plugin' as const, name: entry.plugin.name },
+      state: entry.status.state,
+      reason: entry.status.reason,
+      requires: {
+        system: (entry.plugin.system ?? []).map(({ id, reason }) => ({ id, reason })),
+        ports: [...(entry.plugin.uses ?? [])],
+      },
+      surfaces: {
+        tools: entry.tools.flatMap((contribution) => contribution.names()).sort(),
+        routes: [...entry.routes].sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method)),
+      },
+    }]
+  }).sort((a, b) => a.id.localeCompare(b.id))
 }
 
 /** Each plugin's opening snapshot for a client that has just connected. */

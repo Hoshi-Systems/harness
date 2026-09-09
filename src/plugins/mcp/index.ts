@@ -31,6 +31,7 @@ import { refreshExpiringTokens } from './oauth-connect.js'
 export default definePlugin({
   name: 'mcp',
   description: 'Third-party MCP servers as tools',
+  capability: { id: 'mcp.connectors', title: 'MCP connectors', description: 'Third-party MCP servers as tools' },
 
   setup(host) {
     /**

@@ -24,6 +24,7 @@ import { displayName, ensureDisplay, stopDesktop } from './desktop.js'
 export default definePlugin<DesktopConfig>({
   name: 'desktop',
   description: "The agent's browser, visible and shareable",
+  capability: { id: 'desktop.browser', title: 'Shared browser', description: "The agent's browser, visible and shareable" },
 
   config: parseDesktopConfig,
 

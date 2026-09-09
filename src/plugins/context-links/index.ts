@@ -25,6 +25,7 @@ import route_links_id_delete from './context.links.id.delete.js'
 export default definePlugin({
   name: 'context-links',
   description: 'Passing a passage of one conversation into another as a link, not a copy',
+  capability: { id: 'context-links.passage', title: 'Context links', description: 'Passing a passage of one conversation into another as a link, not a copy' },
 
   setup(host) {
     host.provide((current) => ({

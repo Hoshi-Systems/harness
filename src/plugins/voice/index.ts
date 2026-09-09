@@ -6,6 +6,7 @@ import route_voice_speak_post from './voice.speak.post.js'
 export default definePlugin({
   name: 'voice',
   description: 'Speech in and out, on the machine’s own CPU',
+  capability: { id: 'voice.speech', title: 'On-device speech', description: 'Speech in and out, on the machine’s own CPU' },
 
   setup(host) {
     /**

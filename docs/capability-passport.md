@@ -63,6 +63,12 @@ The connection-time `machine.state` snapshot remains the lightweight event
 surface. If availability changes after boot, it is republished; a client then
 refetches the detailed Passport once. No polling loop is introduced.
 
+Every first-party plugin declares one capability now. The field remains optional
+for external plugins during the pre-1.0 migration: an older plugin continues to
+run unchanged, but is intentionally absent from the Passport. Harness never
+guesses a public identity from a package name. Requiring declarations from every
+plugin is a future 1.0 compatibility boundary, not a surprise patch release.
+
 ## Safety
 
 The Passport is owner-authenticated, like the existing plugin status endpoint.

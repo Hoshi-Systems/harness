@@ -13,6 +13,7 @@ const SWEEP_MS = 30_000
 export default definePlugin({
   name: 'engagements',
   description: 'A declared process: specialists, what each owes, and who hands their result to whom',
+  capability: { id: 'engagements.process', title: 'Engagement processes', description: 'A declared process: specialists, what each owes, and who hands their result to whom' },
 
   setup(host) {
     host.tools.add(engagementTools, engagementToolNames)

@@ -21,6 +21,7 @@ import route_workflow_runs_index_get from './workflow-runs.index.get.js'
 export default definePlugin({
   name: 'workflows',
   description: 'Multi-step graphs the machine runs on its own',
+  capability: { id: 'workflows.automation', title: 'Workflows', description: 'Multi-step graphs the machine runs on its own' },
 
   uses: ['bindSessionToProject', 'detachTriggersForWorkflow', 'markUnattended', 'notify'],
 

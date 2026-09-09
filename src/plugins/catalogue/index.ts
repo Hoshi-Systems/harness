@@ -19,6 +19,7 @@ import { catalogueTools } from './tools.js'
 export default definePlugin({
   name: 'catalogue',
   description: 'Skills and commands the machine writes for itself',
+  capability: { id: 'catalogue.authoring', title: 'Machine authoring', description: 'Skills and commands the machine writes for itself' },
 
   setup(host) {
     host.tools.add(

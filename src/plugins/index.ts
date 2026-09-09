@@ -58,7 +58,7 @@ export const firstParty: RegisteredPlugin[] = [
 ]
 
 export { definePlugin, hostBinding, isOwnPlugin } from './define.js'
-export type { Plugin, PluginHost, PluginToolContext, RegisteredPlugin, SystemDependency } from './define.js'
+export type { CapabilityDeclaration, Plugin, PluginHost, PluginToolContext, RegisteredPlugin, SystemDependency } from './define.js'
 export { bindTools, defineHoshiTool, jsonish, z } from './define-tool.js'
 export type {
   HoshiToolContext,

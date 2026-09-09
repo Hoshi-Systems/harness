@@ -31,6 +31,7 @@ const STALE_AFTER_MS = 90_000
 export default definePlugin({
   name: 'relay',
   description: "Local models tunnelled from the owner's own computer — Ollama, LM Studio, vLLM",
+  capability: { id: 'relay.local-models', title: 'Local model relay', description: "Local models tunnelled from the owner's own computer — Ollama, LM Studio, vLLM" },
 
   async setup(host) {
     const forwarder = await startLoopbackForwarder()
