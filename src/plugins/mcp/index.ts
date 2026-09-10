@@ -10,6 +10,8 @@ import oauthCallback from './mcp.oauth.callback.get.js'
 import startOauth from './mcp.name.oauth.post.js'
 import disconnectOauth from './mcp.name.oauth.delete.js'
 import { refreshExpiringTokens } from './oauth-connect.js'
+import { connectorStatus, installRemoteServer } from './servers.js'
+import { beginDcrAuthorization } from './mcp.name.oauth.post.js'
 
 /**
  * ── MCP connectors ───────────────────────────────────────────────────────────
@@ -34,6 +36,17 @@ export default definePlugin({
   capability: { id: 'mcp.connectors', title: 'MCP connectors', description: 'Third-party MCP servers as tools' },
 
   setup(host) {
+    /** The product-facing connector service. It is a port, not routes called
+     * back through localhost, so an external plugin stays independent of this
+     * plugin's storage and keeps its request context for OAuth redirects. */
+    host.provide((current) => ({
+      ...current,
+      mcpConnectors: {
+        install: installRemoteServer,
+        beginDcrAuthorization,
+        status: connectorStatus,
+      },
+    }))
     /**
      *
      * Built per turn rather than cached: a connector added a moment ago has to

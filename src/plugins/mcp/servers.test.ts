@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InvalidServerError, parseConfig } from './servers.js'
+import { InvalidServerError, parseConfig, parseRemoteConnector } from './servers.js'
 
 /**
  * ── What a connector definition may be ───────────────────────────────────────
@@ -91,5 +91,55 @@ describe('what a connector definition must carry', () => {
       type: 'http',
       url: 'https://mcp.test/x',
     })
+  })
+})
+
+describe('the public declared-connector boundary', () => {
+  it('accepts only remote transports and stores a vault binding rather than a credential', () => {
+    expect(
+      parseRemoteConnector({
+        name: 'github',
+        transport: 'http',
+        url: 'https://api.githubcopilot.com/mcp/',
+        vaultHeaders: { Authorization: { key: 'HOSHI_GITHUB_TOKEN', template: 'Bearer {{secret}}' } },
+      }),
+    ).toEqual({
+      type: 'http',
+      url: 'https://api.githubcopilot.com/mcp/',
+      vaultHeaders: { Authorization: { key: 'HOSHI_GITHUB_TOKEN', template: 'Bearer {{secret}}' } },
+    })
+  })
+
+  it('refuses a local transport, non-http endpoint, and an unsafe vault binding', () => {
+    expect(() =>
+      parseRemoteConnector({ name: 'local', transport: 'stdio' as never, url: 'https://example.test/mcp' }),
+    ).toThrow(InvalidServerError)
+    expect(() => parseRemoteConnector({ name: 'ftp', transport: 'http', url: 'ftp://example.test/mcp' })).toThrow(
+      InvalidServerError,
+    )
+    expect(() =>
+      parseRemoteConnector({
+        name: 'unsafe',
+        transport: 'sse',
+        url: 'https://example.test/sse',
+        vaultHeaders: { Authorization: { key: 'token', template: 'Bearer {{secret}}' } },
+      }),
+    ).toThrow(InvalidServerError)
+    expect(() =>
+      parseRemoteConnector({
+        name: 'unsafe-template',
+        transport: 'sse',
+        url: 'https://example.test/sse',
+        vaultHeaders: { Authorization: { key: 'TOKEN', template: 'Bearer token' } },
+      }),
+    ).toThrow(InvalidServerError)
+    expect(() =>
+      parseRemoteConnector({
+        name: 'unsafe-template',
+        transport: 'sse',
+        url: 'https://example.test/sse',
+        vaultHeaders: { Authorization: { key: 'TOKEN', template: 'Token {{secret}}' } },
+      }),
+    ).toThrow(InvalidServerError)
   })
 })
