@@ -55,6 +55,12 @@ An external product plugin can install a remote connector through the MCP
 plugin's public port. Declare `uses: ['mcpConnectors']`; do not import MCP
 storage, routes, OAuth helpers, or call the machine's own HTTP API.
 
+The MCP plugin continues to expose its normal machine-local configuration and
+status routes for clients that configure a connector manually. Harness does not
+publish an MCP marketplace, featured catalogue, or third-party registry-search
+route. A product that curates connectors owns that catalogue itself and declares
+the selected connector through this port.
+
 ```ts
 import { definePlugin, type McpConnectorPort } from '@hoshi/harness'
 

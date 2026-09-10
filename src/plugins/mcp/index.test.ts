@@ -29,6 +29,8 @@ describe('the public MCP connector port', () => {
       beginDcrAuthorization: expect.any(Function),
       status: expect.any(Function),
     })
+    expect(routes.get).toHaveBeenCalledWith('/mcp', expect.any(Function))
     expect(routes.post).toHaveBeenCalledWith('/mcp/:name/oauth', expect.any(Function))
+    expect(routes.get).not.toHaveBeenCalledWith('/mcp/registry', expect.any(Function))
   })
 })
