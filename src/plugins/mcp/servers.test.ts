@@ -142,4 +142,39 @@ describe('the public declared-connector boundary', () => {
       }),
     ).toThrow(InvalidServerError)
   })
+
+  it('persists only a named runtime token source and its scopes, never a bearer token', () => {
+    expect(
+      parseRemoteConnector({
+        name: 'google-drive',
+        transport: 'http',
+        url: 'https://mcp.example.test/',
+        tokenSource: { id: 'platform.google', scopes: ['drive.readonly'] },
+      }),
+    ).toEqual({
+      type: 'http',
+      url: 'https://mcp.example.test/',
+      tokenSource: { id: 'platform.google', scopes: ['drive.readonly'] },
+    })
+  })
+
+  it('refuses malformed sources and a declaration that tries to combine credential owners', () => {
+    expect(() =>
+      parseRemoteConnector({
+        name: 'bad-source',
+        transport: 'http',
+        url: 'https://mcp.example.test/',
+        tokenSource: { id: 'not valid' },
+      }),
+    ).toThrow(InvalidServerError)
+    expect(() =>
+      parseRemoteConnector({
+        name: 'two-auth-modes',
+        transport: 'http',
+        url: 'https://mcp.example.test/',
+        vaultHeaders: { Authorization: { key: 'TOKEN', template: 'Bearer {{secret}}' } },
+        tokenSource: { id: 'platform.google' },
+      }),
+    ).toThrow(InvalidServerError)
+  })
 })

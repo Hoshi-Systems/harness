@@ -10,8 +10,9 @@ import oauthCallback from './mcp.oauth.callback.get.js'
 import startOauth from './mcp.name.oauth.post.js'
 import disconnectOauth from './mcp.name.oauth.delete.js'
 import { refreshExpiringTokens } from './oauth-connect.js'
-import { connectorStatus, installRemoteServer } from './servers.js'
+import { connectorStatus, installRemoteServer, invalidateMcpConnections } from './servers.js'
 import { beginDcrAuthorization } from './mcp.name.oauth.post.js'
+import { bindTokenSource, clearTokenSources } from './token-sources.js'
 
 /**
  * ── MCP connectors ───────────────────────────────────────────────────────────
@@ -43,6 +44,14 @@ export default definePlugin({
       ...current,
       mcpConnectors: {
         install: installRemoteServer,
+        bindTokenSource: (id, resolve) => {
+          const release = bindTokenSource(id, resolve)
+          invalidateMcpConnections()
+          return () => {
+            release()
+            invalidateMcpConnections()
+          }
+        },
         beginDcrAuthorization,
         status: connectorStatus,
       },
@@ -86,5 +95,11 @@ export default definePlugin({
     /** Renew what is close to expiring. On the machine's own timer: the
      *  no-polling rule is about the client↔machine wire. */
     host.jobs.every(5 * 60_000, refreshExpiringTokens)
+    return {
+      shutdown: () => {
+        clearTokenSources()
+        invalidateMcpConnections()
+      },
+    }
   },
 })

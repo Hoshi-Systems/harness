@@ -104,6 +104,50 @@ const result = await host.ports.mcpConnectors?.beginDcrAuthorization({
 `status(name)` returns only name, connection state, OAuth state and tool count.
 It never returns an endpoint, vault binding, token, or secret value.
 
+### Use a product-brokered short-lived token
+
+When an organization owns the OAuth relationship, bind a runtime token source
+from the product plugin and declare its non-secret id on the connector. The MCP
+plugin asks the resolver only while it is about to dial; it writes neither the
+access token it receives nor a refresh token or client secret to `mcp.json`.
+
+```ts
+import { definePlugin } from '@hoshi/harness'
+
+export default [
+  definePlugin({
+    name: 'example-platform',
+    description: 'Makes organization-brokered connectors available.',
+    uses: ['mcpConnectors'],
+    setup(host) {
+      const connectors = host.ports.mcpConnectors
+      if (!connectors) return
+
+      connectors.bindTokenSource('platform.example', async ({ name, scopes }) => {
+        const token = await mintShortLivedTokenFromYourPlatform({ name, scopes })
+        return token ? { state: 'available', accessToken: token } : { state: 'unavailable' }
+      })
+
+      void connectors.install({
+        name: 'example',
+        transport: 'http',
+        url: 'https://mcp.example.com/',
+        tokenSource: { id: 'platform.example', scopes: ['documents.read'] },
+      })
+    },
+  }),
+]
+```
+
+Bind the source during every plugin setup. Source bindings are process-local by
+design, so a restart begins unbound; a stored connector whose source was not
+registered is visibly `unreachable` with `needs-auth` rather than being dialled
+without a credential. Resolver outcomes are sanitized: an expired token reports
+`expired`; unavailable, revoked, or failed broker requests report `needs-auth`.
+Do not return provider errors or token metadata. A connector uses either
+`tokenSource` or `vaultHeaders`, never both; DCR remains the machine-owned OAuth
+path above.
+
 ## Describe what the machine can do
 
 `capability` is the public, stable identity of the unit your plugin adds. Its

@@ -25,6 +25,7 @@ describe('the public MCP connector port', () => {
 
     expect(provided?.mcpConnectors).toEqual({
       install: expect.any(Function),
+      bindTokenSource: expect.any(Function),
       beginDcrAuthorization: expect.any(Function),
       status: expect.any(Function),
     })
