@@ -51,11 +51,16 @@ export function claimFlow(state: string): PendingFlow | null {
   return flow
 }
 
+/** A declaration changed while consent was open. Its callback must not attach
+ * the old endpoint's authorization to the replacement connector. */
+export function forgetFlowsFor(name: string): void {
+  for (const [state, flow] of pending) if (flow.name === name) pending.delete(state)
+}
+
 /** The machine's own origin, taken from the request the person's browser is
  *  making — not from configuration, which is how a redirect URI ends up
  *  pointing at the wrong host on a machine reached through an ingress. */
-export function redirectUri(event: { node: { req: { headers: Record<string, unknown> } } }): string {
-  const headers = event.node.req.headers
+export function redirectUri(headers: Record<string, string | string[] | undefined>): string {
   const forwardedProto = String(headers['x-forwarded-proto'] ?? '')
     .split(',')[0]
     ?.trim()
