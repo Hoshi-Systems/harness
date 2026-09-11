@@ -5,7 +5,6 @@ import addServer from './mcp.index.post.js'
 import updateServer from './mcp.name.patch.js'
 import reconnectServer from './mcp.name.reconnect.post.js'
 import removeServer from './mcp.name.delete.js'
-import registry from './mcp.registry.get.js'
 import oauthCallback from './mcp.oauth.callback.get.js'
 import startOauth from './mcp.name.oauth.post.js'
 import disconnectOauth from './mcp.name.oauth.delete.js'
@@ -80,7 +79,6 @@ export default definePlugin({
     host.routes.patch('/mcp/:name', updateServer)
     host.routes.post('/mcp/:name/reconnect', reconnectServer)
     host.routes.delete('/mcp/:name', removeServer)
-    host.routes.get('/mcp/registry', registry)
     /**
      *
      * OAuth for remote connectors. The callback is registered BEFORE `/mcp/:name`
