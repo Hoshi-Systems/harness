@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
       metadata: flow.metadata,
       clientId: registration.clientId,
       clientSecret: registration.clientSecret,
-      redirectUri: redirectUri(event),
+      redirectUri: redirectUri(event.node.req.headers as Record<string, string | string[] | undefined>),
       code,
       verifier: flow.verifier,
       resource: flow.resource,

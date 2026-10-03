@@ -2,6 +2,7 @@ import { defineEventHandler, getRouterParam } from 'h3'
 import { randomBytes } from 'node:crypto'
 import { apiError, requireAuth } from '../../kernel/index.js'
 import { listServers } from './servers.js'
+import type { McpDcrAuthorizationRequest } from '../../mcp-connectors.js'
 import {
   authorizationUrl,
   createPkce,
@@ -25,14 +26,12 @@ import { beginFlow, redirectUri } from './oauth-flow.js'
  * business holding one.
  *
  **/
-export default defineEventHandler(async (event) => {
-  await requireAuth(event)
-  const name = getRouterParam(event, 'name')!
-  const server = (await listServers()).find((entry) => entry.name === name)
-  if (!server) apiError(404, 'mcp.notFound', 'No connector by that name.')
+export async function beginDcrAuthorization(input: McpDcrAuthorizationRequest): Promise<{ url: string }> {
+  const server = (await listServers()).find((entry) => entry.name === input.name)
+  if (!server) throw new McpAuthorizationError('notFound', 'No connector by that name.')
   const config = server.config
   if (config.type === 'stdio') {
-    apiError(400, 'mcp.oauthLocal', 'A local connector runs as a command and has nothing to authorize.')
+    throw new McpAuthorizationError('local', 'A local connector runs as a command and has nothing to authorize.')
   }
 
   try {
@@ -50,32 +49,60 @@ export default defineEventHandler(async (event) => {
      **/
     let registration = await registrationFor(metadata.issuer)
     if (!registration) {
-      registration = await registerClient(metadata, redirectUri(event), 'Hoshi machine')
+      registration = await registerClient(metadata, redirectUri(input.request.headers), 'Hoshi machine')
       await rememberRegistration(metadata.issuer, registration)
     }
 
     const pkce = createPkce()
     const state = randomBytes(24).toString('base64url')
     beginFlow(state, {
-      name,
+      name: input.name,
       issuer: metadata.issuer,
       resource: resource.resource,
       metadata,
       verifier: pkce.verifier,
     })
 
+    const scopes = input.scopes?.filter((scope) => typeof scope === 'string' && scope.trim()).join(' ')
     return {
       url: authorizationUrl({
         metadata,
         clientId: registration.clientId,
-        redirectUri: redirectUri(event),
+        redirectUri: redirectUri(input.request.headers),
         state,
         challenge: pkce.challenge,
         resource: resource.resource,
+        ...(scopes ? { scope: scopes } : {}),
       }),
     }
   } catch (error) {
-    if (error instanceof OAuthError) apiError(400, 'mcp.oauthFailed', error.message)
+    if (error instanceof OAuthError) throw new McpAuthorizationError('failed', error.message)
+    throw error
+  }
+}
+
+export class McpAuthorizationError extends Error {
+  constructor(
+    readonly kind: 'notFound' | 'local' | 'failed',
+    message: string,
+  ) {
+    super(message)
+  }
+}
+
+export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+  try {
+    return await beginDcrAuthorization({
+      name: getRouterParam(event, 'name')!,
+      request: { headers: event.node.req.headers as Record<string, string | string[] | undefined> },
+    })
+  } catch (error) {
+    if (error instanceof McpAuthorizationError) {
+      const status = error.kind === 'notFound' ? 404 : 400
+      const code = error.kind === 'notFound' ? 'mcp.notFound' : error.kind === 'local' ? 'mcp.oauthLocal' : 'mcp.oauthFailed'
+      apiError(status, code, error.message)
+    }
     throw error
   }
 })

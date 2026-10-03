@@ -266,6 +266,19 @@ export type {
 
 export { RouteTable, RouteConflictError, ownedBy } from './http/router.js'
 export type { RouteRecord, Method } from './http/router.js'
+export type {
+  McpConnectorDeclaration,
+  McpConnectorPort,
+  McpConnectorSnapshot,
+  McpConnectorStatus,
+  McpConnectorTokenSource,
+  McpConnectorTokenSourceReference,
+  McpConnectorTokenSourceRequest,
+  McpConnectorTokenSourceResult,
+  McpConnectorTransport,
+  McpConnectorVaultHeader,
+  McpDcrAuthorizationRequest,
+} from './mcp-connectors.js'
 
 /**
  *

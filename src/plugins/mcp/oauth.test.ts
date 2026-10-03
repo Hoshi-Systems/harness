@@ -14,6 +14,7 @@ import {
   registerClient,
   revokeToken,
 } from './oauth.js'
+import { redirectUri } from './oauth-flow.js'
 
 /**
  *
@@ -104,6 +105,13 @@ describe('the well-known paths', () => {
       'https://x.test/.well-known/oauth-protected-resource/mcp',
     )
     expect(protectedResourceMetadataUrl('https://x.test/')).toBe('https://x.test/.well-known/oauth-protected-resource')
+  })
+
+  it('derives the callback from the initiating request headers, not a platform URL', () => {
+    expect(redirectUri({ host: 'machine.test' })).toBe('https://machine.test/mcp/oauth/callback')
+    expect(redirectUri({ host: 'internal:4200', 'x-forwarded-host': 'machine.test', 'x-forwarded-proto': 'https' })).toBe(
+      'https://machine.test/mcp/oauth/callback',
+    )
   })
 })
 

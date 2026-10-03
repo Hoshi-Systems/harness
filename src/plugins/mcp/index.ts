@@ -5,11 +5,13 @@ import addServer from './mcp.index.post.js'
 import updateServer from './mcp.name.patch.js'
 import reconnectServer from './mcp.name.reconnect.post.js'
 import removeServer from './mcp.name.delete.js'
-import registry from './mcp.registry.get.js'
 import oauthCallback from './mcp.oauth.callback.get.js'
 import startOauth from './mcp.name.oauth.post.js'
 import disconnectOauth from './mcp.name.oauth.delete.js'
 import { refreshExpiringTokens } from './oauth-connect.js'
+import { connectorStatus, installRemoteServer, invalidateMcpConnections } from './servers.js'
+import { beginDcrAuthorization } from './mcp.name.oauth.post.js'
+import { bindTokenSource, clearTokenSources } from './token-sources.js'
 
 /**
  * ── MCP connectors ───────────────────────────────────────────────────────────
@@ -34,6 +36,25 @@ export default definePlugin({
   capability: { id: 'mcp.connectors', title: 'MCP connectors', description: 'Third-party MCP servers as tools' },
 
   setup(host) {
+    /** The product-facing connector service. It is a port, not routes called
+     * back through localhost, so an external plugin stays independent of this
+     * plugin's storage and keeps its request context for OAuth redirects. */
+    host.provide((current) => ({
+      ...current,
+      mcpConnectors: {
+        install: installRemoteServer,
+        bindTokenSource: (id, resolve) => {
+          const release = bindTokenSource(id, resolve)
+          invalidateMcpConnections()
+          return () => {
+            release()
+            invalidateMcpConnections()
+          }
+        },
+        beginDcrAuthorization,
+        status: connectorStatus,
+      },
+    }))
     /**
      *
      * Built per turn rather than cached: a connector added a moment ago has to
@@ -58,7 +79,6 @@ export default definePlugin({
     host.routes.patch('/mcp/:name', updateServer)
     host.routes.post('/mcp/:name/reconnect', reconnectServer)
     host.routes.delete('/mcp/:name', removeServer)
-    host.routes.get('/mcp/registry', registry)
     /**
      *
      * OAuth for remote connectors. The callback is registered BEFORE `/mcp/:name`
@@ -73,5 +93,11 @@ export default definePlugin({
     /** Renew what is close to expiring. On the machine's own timer: the
      *  no-polling rule is about the client↔machine wire. */
     host.jobs.every(5 * 60_000, refreshExpiringTokens)
+    return {
+      shutdown: () => {
+        clearTokenSources()
+        invalidateMcpConnections()
+      },
+    }
   },
 })

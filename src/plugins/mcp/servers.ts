@@ -2,8 +2,17 @@ import { closeMCPClients, connectMCPServers, type MCPServerConfig } from '@openh
 import type { ToolSet } from 'ai'
 import { hoshiFile, readHoshiJson, writeHoshiJson } from '../../kernel/store.js'
 import { authorizationHeader } from './oauth-connect.js'
-import { authorizedConnectors, authStatus, type AuthStatus } from './oauth-store.js'
+import { authorizedConnectors, authStatus, forgetAuth, type AuthStatus } from './oauth-store.js'
 import { publishMachineEvent } from '../../kernel/events.js'
+import { isValidSecretKey, readSecretValue } from '../../kernel/secrets.js'
+import type {
+  McpConnectorDeclaration,
+  McpConnectorSnapshot,
+  McpConnectorTokenSourceReference,
+  McpConnectorVaultHeader,
+} from '../../mcp-connectors.js'
+import { forgetFlowsFor } from './oauth-flow.js'
+import { resolveTokenSource, TokenSourceUnavailableError } from './token-sources.js'
 
 /**
  * ── MCP connectors ───────────────────────────────────────────────────────────
@@ -34,7 +43,14 @@ export type ServerStatus = 'connected' | 'unreachable' | 'disabled'
  *  command, the url and the credentials stay exactly as they were, so switching
  *  it back on is one click rather than setting it up again. The machine had no
  *  notion of this at all while every client offered the toggle. */
-export type StoredServer = MCPServerConfig & { enabled?: boolean }
+export type StoredServer = MCPServerConfig & {
+  enabled?: boolean
+  /** Credential references only. Resolved immediately before connecting. */
+  vaultHeaders?: Record<string, McpConnectorVaultHeader>
+  /** A runtime-only product broker reference. This is identity metadata, never
+   * a credential: the resolver supplies a short-lived token at dial time. */
+  tokenSource?: McpConnectorTokenSourceReference
+}
 
 export interface McpServer {
   name: string
@@ -73,15 +89,15 @@ const FILE = () => hoshiFile('mcp.json')
 const CONNECT_TIMEOUT_MS = 5_000
 
 interface McpFile {
-  servers?: Record<string, MCPServerConfig>
+  servers?: Record<string, StoredServer>
 }
 
-async function readDefinitions(): Promise<Record<string, MCPServerConfig>> {
+async function readDefinitions(): Promise<Record<string, StoredServer>> {
   const data = await readHoshiJson<McpFile>(FILE())
   return data?.servers ?? {}
 }
 
-async function writeDefinitions(servers: Record<string, MCPServerConfig>): Promise<void> {
+async function writeDefinitions(servers: Record<string, StoredServer>): Promise<void> {
   await writeHoshiJson(FILE(), { servers })
   invalidate()
   publishMachineEvent('mcp.changed', {})
@@ -99,7 +115,10 @@ async function writeDefinitions(servers: Record<string, MCPServerConfig>): Promi
 interface Live {
   clients: Awaited<ReturnType<typeof connectMCPServers>>['clients']
   tools: ToolSet
-  statuses: Map<string, { status: ServerStatus; toolCount: number; tools: string[]; error: string | null }>
+  statuses: Map<
+    string,
+    { status: ServerStatus; auth: AuthStatus | null; toolCount: number; tools: string[]; error: string | null }
+  >
 }
 
 let live: Promise<Live> | null = null
@@ -116,12 +135,41 @@ function invalidate(): void {
   void previous?.then(({ clients }) => closeMCPClients(clients)).catch(() => undefined)
 }
 
+/** Runtime credentials are intentionally not part of a stored definition. When
+ * their provider comes up, goes away, or is rebound, discard an old failed dial
+ * so the next turn observes the current runtime source rather than a cache. */
+export function invalidateMcpConnections(): void {
+  invalidate()
+}
+
 /** Merge the machine's bearer token into a remote connector's headers. Returns
  *  the config untouched for stdio, and for anything with no authorization. */
 async function withAuthorization(name: string, config: MCPServerConfig): Promise<MCPServerConfig> {
-  if (config.type === 'stdio') return config
+  const stored = config as StoredServer
+  if (stored.type === 'stdio') return config
+  const vaultHeaders = await resolveVaultHeaders(stored.vaultHeaders)
   const header = await authorizationHeader(name)
-  return header ? { ...config, headers: { ...config.headers, ...header } } : config
+  const token = stored.tokenSource ? await resolveTokenSource(stored.tokenSource, name) : null
+  const headers = { ...stored.headers, ...vaultHeaders, ...header, ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+  if (stored.type === 'http') return { type: 'http', url: stored.url, headers }
+  return {
+    type: 'sse',
+    url: stored.url,
+    headers,
+  }
+}
+
+/** Resolve only while connecting. Stored declarations carry vault key NAMES and
+ * templates, never a value that a config/status read could reveal. */
+async function resolveVaultHeaders(
+  bindings: Record<string, McpConnectorVaultHeader> | undefined,
+): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {}
+  for (const [name, binding] of Object.entries(bindings ?? {})) {
+    const secret = await readSecretValue(binding.key)
+    if (secret !== null) headers[name] = binding.template.replaceAll('{{secret}}', secret)
+  }
+  return headers
 }
 
 async function connectAll(): Promise<Live> {
@@ -141,7 +189,7 @@ async function connectAll(): Promise<Live> {
      *
      **/
     if (enabled === false) {
-      statuses.set(name, { status: 'disabled', toolCount: 0, tools: [], error: null })
+      statuses.set(name, { status: 'disabled', auth: null, toolCount: 0, tools: [], error: null })
       continue
     }
     try {
@@ -159,6 +207,7 @@ async function connectAll(): Promise<Live> {
       tools = { ...tools, ...connection.tools }
       statuses.set(name, {
         status: 'connected',
+        auth: stored.tokenSource ? 'authenticated' : null,
         toolCount: Object.keys(connection.tools).length,
         tools: Object.keys(connection.tools),
         error: null,
@@ -173,6 +222,7 @@ async function connectAll(): Promise<Live> {
        **/
       statuses.set(name, {
         status: 'unreachable',
+        auth: error instanceof TokenSourceUnavailableError ? error.auth : null,
         toolCount: 0,
         tools: [],
         error: error instanceof Error ? error.message : String(error),
@@ -208,7 +258,7 @@ export async function listServers(): Promise<McpServer[]> {
       name,
       config,
       status: state?.status ?? 'unreachable',
-      auth: authStatus(auth.get(name) ?? null),
+      auth: state?.auth ?? authStatus(auth.get(name) ?? null),
       toolCount: state?.toolCount ?? 0,
       tools: state?.tools ?? [],
       error: state?.error ?? null,
@@ -220,6 +270,15 @@ export async function listServers(): Promise<McpServer[]> {
  *  Namespaced `server_tool` by the library, so two servers cannot collide. */
 export async function mcpTools(): Promise<ToolSet> {
   return (await ensureConnected()).tools
+}
+
+/** A projection safe for another plugin to render or return. It intentionally
+ * omits the endpoint and header bindings alongside every credential value. */
+export async function connectorStatus(name: string): Promise<McpConnectorSnapshot | null> {
+  const server = (await listServers()).find((entry) => entry.name === name)
+  return server
+    ? { name: server.name, status: server.status, auth: server.auth, toolCount: server.toolCount }
+    : null
 }
 
 export class InvalidServerError extends Error {}
@@ -238,6 +297,59 @@ function isStringRecord(value: unknown): value is Record<string, string> {
     !Array.isArray(value) &&
     Object.values(value).every((entry) => typeof entry === 'string')
   )
+}
+
+function vaultHeaderBindings(value: unknown): Record<string, McpConnectorVaultHeader> | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new InvalidServerError('vaultHeaders must be a map of header names to vault bindings.')
+  }
+  const parsed: Record<string, McpConnectorVaultHeader> = {}
+  for (const [header, binding] of Object.entries(value)) {
+    if (!header || /[\r\n]/.test(header)) throw new InvalidServerError('A vault header name cannot be empty or contain a line break.')
+    if (typeof binding !== 'object' || binding === null || Array.isArray(binding)) {
+      throw new InvalidServerError(`Vault header ${header} must name a key and template.`)
+    }
+    const { key, template } = binding as Record<string, unknown>
+    if (typeof key !== 'string' || !isValidSecretKey(key)) {
+      throw new InvalidServerError(`Vault header ${header} needs a valid uppercase vault key.`)
+    }
+    if (template !== '{{secret}}' && template !== 'Bearer {{secret}}') {
+      throw new InvalidServerError(`Vault header ${header} must use {{secret}} or Bearer {{secret}}.`)
+    }
+    parsed[header] = { key, template }
+  }
+  return parsed
+}
+
+function tokenSourceReference(value: unknown): McpConnectorTokenSourceReference | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new InvalidServerError('tokenSource must name a runtime token source.')
+  }
+  const { id, scopes } = value as Record<string, unknown>
+  if (typeof id !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(id)) {
+    throw new InvalidServerError('tokenSource needs a valid source id.')
+  }
+  if (scopes !== undefined && (!Array.isArray(scopes) || scopes.some((scope) => typeof scope !== 'string' || !scope.trim()))) {
+    throw new InvalidServerError('tokenSource scopes must be non-empty strings.')
+  }
+  return { id, ...(scopes ? { scopes: [...new Set(scopes)] as string[] } : {}) }
+}
+
+export function parseRemoteConnector(input: McpConnectorDeclaration): StoredServer {
+  const config = parseConfig({ type: input.transport, url: input.url })
+  if (config.type === 'stdio') throw new InvalidServerError('A declared connector must use an HTTP or SSE transport.')
+  const protocol = new URL(config.url).protocol
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    throw new InvalidServerError('A declared connector needs an http or https endpoint.')
+  }
+  const vaultHeaders = vaultHeaderBindings(input.vaultHeaders)
+  const tokenSource = tokenSourceReference(input.tokenSource)
+  if (vaultHeaders && tokenSource) {
+    throw new InvalidServerError('A declared connector may use vault headers or a token source, not both.')
+  }
+  return { ...config, ...(vaultHeaders ? { vaultHeaders } : {}), ...(tokenSource ? { tokenSource } : {}) }
 }
 
 export function parseConfig(raw: unknown): MCPServerConfig {
@@ -288,6 +400,32 @@ export async function addServer(name: string, config: MCPServerConfig): Promise<
   const servers = await readDefinitions()
   servers[name] = config
   await writeDefinitions(servers)
+}
+
+/** Install a remote declaration from a product plugin. This is deliberately
+ * separate from the owner-facing add route: product code gets no stdio or
+ * literal-header escape hatch. Changing the remote identity makes all prior
+ * OAuth state unusable, so it is discarded along with any in-flight flow. */
+export async function installRemoteServer(input: McpConnectorDeclaration): Promise<void> {
+  if (!NAME.test(input.name)) {
+    throw new InvalidServerError('A connector name must be letters, digits, dashes or underscores.')
+  }
+  const definition = parseRemoteConnector(input)
+  const servers = await readDefinitions()
+  const previous = servers[input.name]
+  const changedEndpoint =
+    !previous || previous.type === 'stdio' || previous.type !== definition.type || previous.url !== definition.url
+  const changedAuthentication =
+    !previous ||
+    JSON.stringify((previous as StoredServer).vaultHeaders ?? null) !== JSON.stringify(definition.vaultHeaders ?? null) ||
+    JSON.stringify((previous as StoredServer).tokenSource ?? null) !== JSON.stringify(definition.tokenSource ?? null)
+  servers[input.name] = definition
+  await writeDefinitions(servers)
+  if (changedEndpoint || changedAuthentication) {
+    forgetFlowsFor(input.name)
+    await forgetAuth(input.name)
+    publishMachineEvent('mcp.changed', { name: input.name, auth: null })
+  }
 }
 
 /** Merge a change into an existing connector. False when there is nothing by

@@ -3,6 +3,7 @@ import type { MachineEvent } from './events.js'
 import type { PendingAsk, PermissionResolution } from './permissions.js'
 import type { Provider } from './providers.js'
 import type { ShellResult } from '@openharness/core'
+import type { McpConnectorPort } from '../mcp-connectors.js'
 
 /**
  * ── What the kernel asks of its host ─────────────────────────────────────────
@@ -123,6 +124,9 @@ export interface UnattendedContext {
 }
 
 export interface KernelPorts extends UnattendedContext {
+  /** Declared remote MCP connectors. Answered by the MCP plugin so product
+   * plugins never import its storage or route internals. */
+  mcpConnectors?: McpConnectorPort
   /** Extra standing instructions supplied by installed plugins.
    *
    * The harness owns the order in which a turn is assembled, but not every
